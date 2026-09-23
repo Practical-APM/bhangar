@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Camera, CheckCircle2, ChevronDown, ChevronUp, Tag, Video, Sparkles } from 'lucide-react';
 import { ThriftItem, SocietyInfo, UserProfile, AI_CATALOG, AIDetectionResult, analyzeItemWithAI } from '../data/mockData';
+import { analyzeItemWithGrok, isGrokConfigured } from '../services/ai';
 
 interface ListItemModalProps {
   currentSociety: SocietyInfo;
@@ -44,31 +45,29 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
     { label: 'Study Desk', title: 'Solid Sheesham Wood Study & Work Desk', key: 'desk', img: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=800&q=80' }
   ];
 
-  const runAIAnalysis = (newTitle: string, presetKey?: string, defaultImg?: string) => {
+  const runAIAnalysis = async (newTitle: string, presetKey?: string, defaultImg?: string) => {
     setTitle(newTitle);
     setIsAnalyzing(true);
     if (defaultImg && !images.includes(defaultImg)) {
       setImages([defaultImg, ...images.slice(0, 3)]);
     }
-    setTimeout(() => {
-      const result = analyzeItemWithAI(newTitle, presetKey);
-      setDetectedData(result);
-      setPrice(result.suggestedPrice.toString());
-      setOriginalPrice(result.estimatedRetail.toString());
-      setCondition(result.condition);
-      setDimensions(result.dimensions);
-      setAssemblyStatus(result.assemblyStatus);
-      setLiftFriendly(result.liftFriendly);
-      setIsAnalyzing(false);
-    }, 450);
+    const result = await analyzeItemWithGrok(newTitle, presetKey, defaultImg || images[0]);
+    setDetectedData(result);
+    setPrice(result.suggestedPrice.toString());
+    setOriginalPrice(result.estimatedRetail.toString());
+    setCondition(result.condition);
+    setDimensions(result.dimensions);
+    setAssemblyStatus(result.assemblyStatus);
+    setLiftFriendly(result.liftFriendly);
+    setIsAnalyzing(false);
   };
 
   const handleTitleChange = (val: string) => {
     setTitle(val);
     if (val.trim().length > 3) {
       setIsAnalyzing(true);
-      setTimeout(() => {
-        const result = analyzeItemWithAI(val);
+      const timer = setTimeout(async () => {
+        const result = await analyzeItemWithGrok(val, undefined, images[0]);
         setDetectedData(result);
         setPrice(result.suggestedPrice.toString());
         setOriginalPrice(result.estimatedRetail.toString());
@@ -77,7 +76,8 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
         setAssemblyStatus(result.assemblyStatus);
         setLiftFriendly(result.liftFriendly);
         setIsAnalyzing(false);
-      }, 500);
+      }, 550);
+      return () => clearTimeout(timer);
     }
   };
 
@@ -422,10 +422,12 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
             <CheckCircle2 size={13} color="#16A34A" />
           )}
           <span style={{ fontSize: '11.5px', fontWeight: 500, color: isAnalyzing ? '#92400E' : '#166534', flex: 1 }}>
-            {isAnalyzing ? 'Filling in details…' : 'Price and details auto-filled'}
+            {isAnalyzing 
+              ? (isGrokConfigured() ? 'Grok AI analyzing item…' : 'Filling in details…') 
+              : (isGrokConfigured() ? 'Valuation & specs auto-filled by Grok' : 'Price and details auto-filled')}
           </span>
           <span style={{ fontSize: '10px', fontWeight: 600, color: isAnalyzing ? '#B45309' : '#15803D', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            {detectedData.category}
+            {isGrokConfigured() ? 'Grok · ' : ''}{detectedData.category}
           </span>
           {!isAnalyzing && (
             <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
