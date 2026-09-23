@@ -54,45 +54,25 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="header-inner">
         {/* Brand & Community Selector */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flexShrink: 1 }}>
-          {/* Bhangar.Space Logo */}
+          {/* Bhangar Brand Logo */}
           <div 
             className="logo-container"
             title="Bhangar.Space — Hyperlocal Resident Marketplace"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
-            {/* BS Monogram */}
-            <div 
-              className="logo-monogram-box"
+            <img 
+              src="/bhangar_logo.png" 
+              alt="Bhangar" 
               style={{
-                background: 'linear-gradient(135deg, #1A1A1A 0%, #2C2A28 100%)',
-                boxShadow: '0 3px 10px rgba(0, 0, 0, 0.22)',
-                letterSpacing: '-0.04em',
-                fontSize: '12px',
-                width: '30px',
-                height: '30px',
+                height: '32px',
+                width: 'auto',
+                display: 'block',
+                objectFit: 'contain',
+                userSelect: 'none',
+                filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08))',
+                transition: 'transform 0.2s ease',
               }}
-            >
-              BS
-            </div>
-
-            {/* Wordmark */}
-            <div style={{ display: 'flex', alignItems: 'baseline' }}>
-              <span style={{
-                fontSize: '15.5px',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                letterSpacing: '-0.03em',
-              }}>
-                Bhangar
-              </span>
-              <span style={{
-                fontSize: '15.5px',
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                letterSpacing: '-0.025em',
-              }}>
-                .Space
-              </span>
-            </div>
+            />
           </div>
 
           {/* Location / Society Trigger */}
