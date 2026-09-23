@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, ArrowLeft, User, ChevronDown } from 'lucide-react';
+import { X, ArrowLeft, User, ChevronDown, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { SocietyInfo, UserProfile } from '../data/mockData';
+import { isSupabaseConfigured, signInWithGoogleOAuth } from '../lib/supabase';
 
 interface GoogleOAuthModalProps {
   currentSociety: SocietyInfo;
@@ -62,10 +63,15 @@ export const GoogleOAuthModal: React.FC<GoogleOAuthModalProps> = ({
   onClose,
   onLoginSuccess
 }) => {
-  // 'auth_portal': Screenshot 2 layout (Sign in, Continue with Google, email/password) in consistent light theme
-  // 'google_consent': Screenshot 3 layout (Google official "Choose an account to continue to bhangar.space") in Google light theme
+  // 'auth_portal': Main sign-in layout
+  // 'google_consent': Google account selection simulation
   const [view, setView] = useState<'auth_portal' | 'google_consent'>('auth_portal');
   
+  // Real OAuth state
+  const hasSupabase = isSupabaseConfigured();
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [oauthError, setOauthError] = useState<string | null>(null);
+
   // Auth Portal state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -76,6 +82,25 @@ export const GoogleOAuthModal: React.FC<GoogleOAuthModalProps> = ({
   const [isCustomGoogle, setIsCustomGoogle] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customEmail, setCustomEmail] = useState('');
+
+  const handleGoogleSignInClick = async () => {
+    setOauthError(null);
+    if (hasSupabase) {
+      try {
+        setIsRedirecting(true);
+        await signInWithGoogleOAuth();
+        // Browser will redirect to Google accounts login
+      } catch (err: any) {
+        setIsRedirecting(false);
+        const errMsg = err?.message || 'Failed to start Google sign in';
+        setOauthError(errMsg);
+      }
+    } else {
+      // Supabase is not configured -> open local simulated resident chooser
+      setView('google_consent');
+    }
+  };
+
 
   const handleSelectGoogleAccount = (acc: GoogleAccountItem) => {
     setAuthenticatingAccount(acc);
@@ -183,24 +208,49 @@ export const GoogleOAuthModal: React.FC<GoogleOAuthModalProps> = ({
           </button>
 
           {/* App Brand Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '7px',
-              background: 'linear-gradient(135deg, #059669, #047857)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#FFFFFF',
-              fontWeight: 800,
-              fontSize: '13px'
-            }}>
-              T
-            </div>
-            <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-              Bhangar.Space
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
+            <img 
+              src="/new_bhangar_logo.png" 
+              alt="Bhangar.Space Logo" 
+              style={{ height: '30px', width: 'auto', objectFit: 'contain' }}
+            />
+          </div>
+
+          {/* Mode Status Chip */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+            {hasSupabase ? (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '11px',
+                color: '#059669',
+                background: '#ECFDF5',
+                border: '1px solid #A7F3D0',
+                padding: '3px 9px',
+                borderRadius: '999px',
+                fontWeight: 500
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }} />
+                Real Google OAuth Connected
+              </span>
+            ) : (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '11px',
+                color: '#D97706',
+                background: '#FFFBEB',
+                border: '1px solid #FDE68A',
+                padding: '3px 9px',
+                borderRadius: '999px',
+                fontWeight: 500
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#F59E0B' }} />
+                Local Demo Mode (Mock OAuth)
+              </span>
+            )}
           </div>
 
           {/* Title & Description */}
@@ -213,10 +263,54 @@ export const GoogleOAuthModal: React.FC<GoogleOAuthModalProps> = ({
             </p>
           </div>
 
-          {/* CONTINUE WITH GOOGLE BUTTON (MATCHING SCREENSHOT 2) */}
+          {/* Error Banner */}
+          {oauthError && (
+            <div style={{
+              background: '#FEF2F2',
+              border: '1px solid #FCA5A5',
+              borderRadius: '8px',
+              padding: '12px 14px',
+              marginBottom: '16px',
+              color: '#991B1B',
+              fontSize: '12px',
+              lineHeight: 1.45
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '6px' }}>
+                <AlertCircle size={16} color="#DC2626" style={{ flexShrink: 0, marginTop: '1px' }} />
+                <div>
+                  <strong style={{ display: 'block', fontWeight: 600 }}>Google Sign-In Notice</strong>
+                  <span>{oauthError}</span>
+                </div>
+              </div>
+              <div style={{ fontSize: '11px', color: '#7F1D1D', marginTop: '6px', paddingLeft: '24px' }}>
+                Tip: In Supabase Dashboard, go to <strong>Authentication → Providers → Google</strong>, toggle Enable, and enter your Google Cloud Client ID & Secret.
+              </div>
+              <div style={{ marginTop: '10px', paddingLeft: '24px' }}>
+                <button
+                  type="button"
+                  onClick={() => setView('google_consent')}
+                  style={{
+                    fontSize: '11.5px',
+                    fontWeight: 600,
+                    color: '#1D4ED8',
+                    background: '#EFF6FF',
+                    border: '1px solid #BFDBFE',
+                    borderRadius: '5px',
+                    padding: '4px 10px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Switch to Demo Resident Profiles →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* CONTINUE WITH GOOGLE BUTTON */}
           <button
             type="button"
-            onClick={() => setView('google_consent')}
+            disabled={isRedirecting}
+            onClick={handleGoogleSignInClick}
             style={{
               width: '100%',
               padding: '11px 16px',
@@ -230,22 +324,53 @@ export const GoogleOAuthModal: React.FC<GoogleOAuthModalProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '10px',
-              cursor: 'pointer',
+              cursor: isRedirecting ? 'wait' : 'pointer',
+              opacity: isRedirecting ? 0.75 : 1,
               boxShadow: '0 1px 2px rgba(60, 64, 67, 0.08)',
               transition: 'background 0.15s ease, box-shadow 0.15s ease'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#F8F9FA'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#FFFFFF'}
+            onMouseEnter={(e) => { if (!isRedirecting) e.currentTarget.style.background = '#F8F9FA'; }}
+            onMouseLeave={(e) => { if (!isRedirecting) e.currentTarget.style.background = '#FFFFFF'; }}
           >
-            {/* Google SVG Icon */}
-            <svg width="18" height="18" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24z"/>
-              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-            </svg>
-            <span>Continue with Google</span>
+            {isRedirecting ? (
+              <>
+                <Loader2 size={18} className="animate-spin" color="#4285F4" />
+                <span>Connecting to Google...</span>
+              </>
+            ) : (
+              <>
+                {/* Google SVG Icon */}
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24z"/>
+                  <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                </svg>
+                <span>Continue with Google</span>
+              </>
+            )}
           </button>
+
+          {/* Optional Demo Switcher link if Supabase is active */}
+          {hasSupabase && (
+            <div style={{ textAlign: 'center', marginTop: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setView('google_consent')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  textDecoration: 'underline'
+                }}
+              >
+                Or test with simulated demo profiles
+              </button>
+            </div>
+          )}
+
 
           {/* Divider */}
           <div style={{

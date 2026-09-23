@@ -23,3 +23,57 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured()
       },
     })
   : null;
+
+/**
+ * Trigger real Google OAuth sign-in via Supabase.
+ * Redirects the browser to Google's consent screen.
+ */
+export async function signInWithGoogleOAuth(redirectTo?: string) {
+  if (!supabase) {
+    throw new Error('Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.');
+  }
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const targetRedirect = redirectTo || origin;
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: targetRedirect,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      },
+    },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Sign out user from Supabase session
+ */
+export async function signOutFromSupabase() {
+  if (supabase) {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) console.warn('Supabase sign-out warning:', error.message);
+    } catch (err) {
+      console.warn('Supabase sign-out failed:', err);
+    }
+  }
+}
+
+/**
+ * Retrieve current active Supabase session
+ */
+export async function getSupabaseSession() {
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session;
+}
+

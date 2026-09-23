@@ -32,6 +32,8 @@ import {
   createCommentInDB,
   subscribeToRealtimeChanges
 } from './services/api';
+import { supabase, isSupabaseConfigured, signOutFromSupabase } from './lib/supabase';
+
 
 function loadStorage<T>(key: string, fallback: T): T {
   try {
@@ -145,6 +147,65 @@ export function App() {
   // Guest Intent Gatekeeping
   const [authPromptReason, setAuthPromptReason] = useState<string>('Sign in to continue');
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+
+  // Real Supabase Google OAuth Session Sync & Listener
+  useEffect(() => {
+    if (!supabase) return;
+
+    const syncUserFromSupabase = (user: any) => {
+      const meta = user.user_metadata || {};
+      const fullName = meta.full_name || meta.name || user.email?.split('@')[0] || 'Resident';
+      const avatar = meta.avatar_url || meta.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}`;
+
+      setUserProfile((prev) => ({
+        ...prev,
+        name: fullName,
+        email: user.email || prev.email,
+        authProvider: 'google',
+        googleAvatar: avatar,
+        isLoggedIn: true,
+        tower: prev.tower || currentSociety.towers[0] || 'Tower 4',
+        societyId: currentSociety.id,
+        societyName: currentSociety.name,
+        isVerified: true,
+      }));
+
+      setUserTower((prev) => prev || currentSociety.towers[0] || 'Tower 4');
+      setShowGoogleModal(false);
+
+      if (pendingAction) {
+        const action = pendingAction;
+        setPendingAction(null);
+        setTimeout(() => action(), 100);
+      }
+    };
+
+    // Check existing active Supabase session
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!error && session?.user) {
+        syncUserFromSupabase(session.user);
+      }
+    });
+
+    // Listen to OAuth events (redirect callback, sign in, sign out)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
+        syncUserFromSupabase(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        setUserProfile((prev) => ({
+          ...prev,
+          isLoggedIn: false,
+          email: '',
+          name: 'Guest Resident'
+        }));
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [currentSociety.id, currentSociety.name, currentSociety.towers, pendingAction]);
+
 
   const requireAuth = (action: () => void, promptReason: string) => {
     if (userProfile.isLoggedIn) {
@@ -346,14 +407,19 @@ export function App() {
     }
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    if (isSupabaseConfigured()) {
+      await signOutFromSupabase();
+    }
     setUserProfile((prev) => ({
       ...prev,
       isLoggedIn: false,
       email: '',
-      name: 'Guest Resident'
+      name: 'Guest Resident',
+      googleAvatar: undefined
     }));
   };
+
 
   const savedItems = items.filter((it) => savedIds.has(it.id));
 
