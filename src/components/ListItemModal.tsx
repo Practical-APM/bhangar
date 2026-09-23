@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Camera, CheckCircle2, ChevronDown, ChevronUp, Tag, Video, Sparkles } from 'lucide-react';
 import { ThriftItem, SocietyInfo, UserProfile, AI_CATALOG, AIDetectionResult, analyzeItemWithAI } from '../data/mockData';
-import { analyzeItemWithGrok, isGrokConfigured } from '../services/ai';
+import { analyzeItemWithGemini, isGeminiConfigured } from '../services/ai';
 
 interface ListItemModalProps {
   currentSociety: SocietyInfo;
@@ -48,7 +48,7 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
     if (defaultImg && !images.includes(defaultImg)) {
       setImages([defaultImg, ...images.slice(0, 3)]);
     }
-    const result = await analyzeItemWithGrok(newTitle, presetKey, defaultImg || images[0]);
+    const result = await analyzeItemWithGemini(newTitle, presetKey, defaultImg || images[0]);
     setDetectedData(result);
     setPrice(result.suggestedPrice.toString());
     setOriginalPrice(result.estimatedRetail.toString());
@@ -64,7 +64,7 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
     if (val.trim().length > 3) {
       setIsAnalyzing(true);
       const timer = setTimeout(async () => {
-        const result = await analyzeItemWithGrok(val, undefined, images[0]);
+        const result = await analyzeItemWithGemini(val, undefined, images[0]);
         setDetectedData(result);
         setPrice(result.suggestedPrice.toString());
         setOriginalPrice(result.estimatedRetail.toString());
@@ -423,14 +423,14 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
           )}
           <span style={{ fontSize: '11.5px', fontWeight: 500, color: isAnalyzing ? '#92400E' : (detectedData ? '#166534' : 'var(--text-muted)'), flex: 1 }}>
             {isAnalyzing 
-              ? (isGrokConfigured() ? 'Grok AI analyzing item…' : 'Filling in details…') 
+              ? (isGeminiConfigured() ? 'Gemini AI analyzing item…' : 'Filling in details…') 
               : detectedData
-                ? (isGrokConfigured() ? 'Valuation & specs auto-filled by Grok' : 'Price and details auto-filled')
-                : (isGrokConfigured() ? 'Type a title or pick a preset to estimate price with Grok' : 'Enter what you\'re selling to auto-estimate price')}
+                ? (isGeminiConfigured() ? 'Valuation & specs auto-filled by Gemini' : 'Price and details auto-filled')
+                : (isGeminiConfigured() ? 'Type a title or pick a preset to estimate price with Gemini' : 'Enter what you\'re selling to auto-estimate price')}
           </span>
           {detectedData && (
             <span style={{ fontSize: '10px', fontWeight: 600, color: isAnalyzing ? '#B45309' : '#15803D', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {isGrokConfigured() ? 'Grok · ' : ''}{detectedData.category}
+              {isGeminiConfigured() ? 'Gemini · ' : ''}{detectedData.category}
             </span>
           )}
           {!isAnalyzing && detectedData && (
