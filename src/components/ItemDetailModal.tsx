@@ -143,16 +143,18 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             }}
           >
             <MessageSquare size={13} />
-            <span>Public Discussion</span>
-            <span style={{
-              background: 'var(--bg-subtle)',
-              fontSize: '10.5px',
-              padding: '1px 6px',
-              borderRadius: 'var(--radius-full)',
-              color: 'var(--text-secondary)'
-            }}>
-              {itemComments.length}
-            </span>
+            <span>Questions</span>
+            {itemComments.length > 0 && (
+              <span style={{
+                background: 'var(--bg-subtle)',
+                fontSize: '10.5px',
+                padding: '1px 6px',
+                borderRadius: 'var(--radius-full)',
+                color: 'var(--text-secondary)'
+              }}>
+                {itemComments.length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -331,7 +333,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             }}>
               <Lock size={14} color="#166534" style={{ marginTop: '2px', flexShrink: 0 }} />
               <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                <strong style={{ color: 'var(--text-primary)' }}>Public Discussion vs Private Bids:</strong> Questions here are public for all neighbors in the society. Price offers and bids are strictly confidential and only visible to the seller.
+                <strong style={{ color: 'var(--text-primary)' }}>Public Q&amp;A:</strong> Questions asked here are visible to everyone in the society. Price offers are private between you and the seller.
               </div>
             </div>
 
@@ -396,7 +398,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                   color: 'var(--text-muted)',
                   fontSize: '12px'
                 }}>
-                  No public questions yet. Ask about dimensions, pickup, or condition!
+                  No questions yet. Ask about dimensions, pickup, or condition!
                 </div>
               )}
             </div>
@@ -405,7 +407,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             <form onSubmit={handlePostQuestion} style={{ display: 'flex', gap: '8px' }}>
               <input
                 type="text"
-                placeholder="Ask a public question (e.g. Can we arrange elevator pickup?)..."
+                placeholder="Ask a question (e.g. Can we arrange elevator pickup?)..."
                 value={newQuestionText}
                 onChange={(e) => setNewQuestionText(e.target.value)}
                 style={{
@@ -440,7 +442,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
           </div>
         )}
 
-        {/* Private Bid / Mol Bhav Action Bar */}
+        {/* Private Offer Action Bar */}
         <div style={{ borderTop: '1px solid var(--border-hairline)', paddingTop: '12px' }}>
           {isSeller ? (
             <button
@@ -462,7 +464,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 gap: '8px'
               }}
             >
-              <span>View Incoming Private Bids</span>
+              <span>View Offers on This Item</span>
               <ArrowRight size={14} />
             </button>
           ) : (
@@ -493,7 +495,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     ? 'Sold Out'
                     : item.status === 'held'
                     ? 'Reserved on Hold'
-                    : 'Make Private Offer (Mol Bhav)'}
+                    : 'Make an Offer'}
                 </span>
                 {item.status !== 'held' && item.status !== 'sold' && <ArrowRight size={14} />}
               </button>
@@ -503,7 +505,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 color: 'var(--text-muted)',
                 marginTop: '6px'
               }}>
-                🔒 Confidential Bid · Visible only to you and seller ({item.seller.alias})
+                🔒 Private offer · Visible only to you and the seller ({item.seller.alias})
               </div>
             </div>
           )}

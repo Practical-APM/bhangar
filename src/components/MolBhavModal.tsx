@@ -90,7 +90,7 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
       status: isAccepted ? 'accepted' : 'pending',
       counterPrice: suggestedCounter,
       timestamp: 'Just now',
-      buyerNote: 'Offer sent via MolBhav negotiation'
+      buyerNote: 'Private offer submitted'
     }).catch((e) => console.warn('[Offer] DB save failed:', e));
 
     if (isAccepted) {
@@ -604,11 +604,11 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
               fontWeight: 500
             }}>
               <Lock size={10} />
-              <span>Private Chat & Bids</span>
+              <span>Private Chat & Offers</span>
             </div>
           </div>
 
-          {/* Dedicated Privacy Shield Notice Banner */}
+          {/* Dedicated Privacy Notice Banner */}
           <div style={{
             padding: '8px 12px',
             fontSize: '11px',
@@ -620,7 +620,7 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
             gap: '6px'
           }}>
             <ShieldCheck size={13} style={{ flexShrink: 0 }} />
-            <span><strong>Privacy Shield Active:</strong> Personal phone numbers are masked. Bids are strictly confidential between you and {item.seller.alias}.</span>
+            <span><strong>Privacy Protection:</strong> Phone numbers are kept private. Offers are visible only between you and {item.seller.alias}.</span>
           </div>
 
           {privacyAlert && (
