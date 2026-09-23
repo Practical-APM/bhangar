@@ -50,6 +50,19 @@ function saveStorage<T>(key: string, value: T) {
   }
 }
 
+// Purge legacy mock demo data from localStorage if present
+if (typeof window !== 'undefined') {
+  try {
+    const existing = localStorage.getItem('bhangar_items');
+    if (existing && (existing.includes('item-1') || existing.includes('Green Soul') || existing.includes('Coway'))) {
+      localStorage.removeItem('bhangar_items');
+      localStorage.removeItem('bhangar_saved_ids');
+      localStorage.removeItem('bhangar_seller_offers');
+      localStorage.removeItem('bhangar_comments');
+    }
+  } catch {}
+}
+
 export function App() {
   const [societies, setSocieties] = useState<SocietyInfo[]>(() => 
     loadStorage('bhangar_societies', METRO_SOCIETIES)
@@ -73,7 +86,7 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedTowerFilter, setSelectedTowerFilter] = useState<string>('all');
   const [savedIds, setSavedIds] = useState<Set<string>>(() => {
-    const raw = loadStorage<string[]>('bhangar_saved_ids', ['item-1', 'item-3', 'item-7']);
+    const raw = loadStorage<string[]>('bhangar_saved_ids', []);
     return new Set(raw);
   });
   const [showOnlySaved, setShowOnlySaved] = useState<boolean>(false);
@@ -97,21 +110,21 @@ export function App() {
   // Initial fetch from backend if connected + Realtime subscriptions
   useEffect(() => {
     fetchItemsFromDB(currentSociety.id).then((fetched) => {
-      if (fetched && fetched.length > 0) setItems(fetched);
+      if (fetched) setItems(fetched);
     });
     fetchOffersFromDB().then((offers) => {
-      if (offers && offers.length > 0) setSellerOffers(offers);
+      if (offers) setSellerOffers(offers);
     });
 
     const unsubscribe = subscribeToRealtimeChanges(
       () => {
         fetchItemsFromDB(currentSociety.id).then((refetched) => {
-          if (refetched && refetched.length > 0) setItems(refetched);
+          if (refetched) setItems(refetched);
         });
       },
       () => {
         fetchOffersFromDB().then((refetched) => {
-          if (refetched && refetched.length > 0) setSellerOffers(refetched);
+          if (refetched) setSellerOffers(refetched);
         });
       }
     );
@@ -476,6 +489,47 @@ export function App() {
                 onViewDetails={(it) => setActiveDetailItem(it)}
               />
             ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div style={{
+            padding: '72px 20px',
+            textAlign: 'center',
+            maxWidth: '420px',
+            margin: '0 auto',
+          }}>
+            <div style={{
+              width: '56px', height: '56px',
+              borderRadius: '18px',
+              background: 'var(--bg-subtle)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px',
+              fontSize: '26px',
+            }}>📦</div>
+            <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', letterSpacing: '-0.02em' }}>
+              No listings yet in {currentSociety.name.split('(')[0].trim()}
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '22px', lineHeight: 1.5 }}>
+              Be the first to list! Moving out or clearing space? Sell your pre-loved furniture, appliances, or study desk in under 2 minutes.
+            </div>
+            <button
+              onClick={() => requireAuth(() => setShowListItemModal(true), 'Sign in to list items')}
+              style={{
+                padding: '11px 24px',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--text-primary)',
+                color: '#FFFFFF',
+                fontSize: '13px',
+                fontWeight: 600,
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
+                transition: 'transform 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              + Post First Listing
+            </button>
           </div>
         ) : (
           <div style={{

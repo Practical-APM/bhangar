@@ -18,22 +18,19 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
   onClose,
   onItemAdded
 }) => {
-  const [images, setImages] = useState<string[]>([
-    '/images/chair.jpg',
-    'https://images.unsplash.com/photo-1580481077195-c3f99522d3ca?auto=format&fit=crop&w=800&q=80'
-  ]);
-  const [hasVideoProof, setHasVideoProof] = useState<boolean>(true);
+  const [images, setImages] = useState<string[]>([]);
+  const [hasVideoProof, setHasVideoProof] = useState<boolean>(false);
 
-  const [title, setTitle] = useState<string>('Green Soul Ergonomic Office Chair');
+  const [title, setTitle] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
-  const [detectedData, setDetectedData] = useState<AIDetectionResult>(AI_CATALOG.chair);
+  const [detectedData, setDetectedData] = useState<AIDetectionResult | null>(null);
 
-  const [price, setPrice] = useState<string>(AI_CATALOG.chair.suggestedPrice.toString());
-  const [originalPrice, setOriginalPrice] = useState<string>(AI_CATALOG.chair.estimatedRetail.toString());
-  const [condition, setCondition] = useState<'like_new' | 'gently_used' | 'fixer_upper'>(AI_CATALOG.chair.condition);
-  const [dimensions, setDimensions] = useState<string>(AI_CATALOG.chair.dimensions);
-  const [assemblyStatus, setAssemblyStatus] = useState<ThriftItem['assemblyStatus']>(AI_CATALOG.chair.assemblyStatus);
-  const [liftFriendly, setLiftFriendly] = useState<ThriftItem['liftFriendly']>(AI_CATALOG.chair.liftFriendly);
+  const [price, setPrice] = useState<string>('');
+  const [originalPrice, setOriginalPrice] = useState<string>('');
+  const [condition, setCondition] = useState<'like_new' | 'gently_used' | 'fixer_upper'>('gently_used');
+  const [dimensions, setDimensions] = useState<string>('');
+  const [assemblyStatus, setAssemblyStatus] = useState<ThriftItem['assemblyStatus']>('Ready Assembled (Zero assembly needed)');
+  const [liftFriendly, setLiftFriendly] = useState<ThriftItem['liftFriendly']>('Fits standard passenger lift');
   const [isMovingOut, setIsMovingOut] = useState<boolean>(false);
   const [showDetails, setShowDetails] = useState<boolean>(false);
 
@@ -137,7 +134,6 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
   };
 
   const handleRemoveImage = (index: number) => {
-    if (images.length <= 1) return;
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -148,26 +144,28 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
     const asking = parseInt(price, 10);
     const orig = originalPrice ? parseInt(originalPrice, 10) : asking * 2;
     const randomArt = `${Math.floor(100 + Math.random() * 900)}.${Math.floor(100 + Math.random() * 900)}.${Math.floor(10 + Math.random() * 90)}`;
+    const category = detectedData ? detectedData.category : 'furniture';
+    const roomType = detectedData ? detectedData.roomType : 'living';
 
     const newItem: ThriftItem = {
       id: `item-${Date.now()}`,
       articleNumber: randomArt,
-      ikeaStyleName: `${title.split(' ')[0].toUpperCase()} / ${detectedData.category}`,
+      ikeaStyleName: `${title.split(' ')[0].toUpperCase()} / ${category}`,
       title: title.trim(),
-      category: detectedData.category,
-      roomType: detectedData.roomType,
+      category,
+      roomType,
       price: asking,
       originalPrice: orig,
       condition,
       conditionLabel: condition === 'fixer_upper' ? 'Needs Repair' : (condition === 'like_new' ? 'Like New' : 'Gently Used'),
-      dimensions,
+      dimensions: dimensions.trim() || 'Standard size',
       assemblyStatus,
       liftFriendly,
-      inspectionNote: 'Available for inspection at pickup. Contact via the offer system.',
-      description: `Listed in ${currentSociety.name.split('(')[0].trim()}. Pickup from lobby or building entrance.`,
+      inspectionNote: 'Available for inspection at pickup in residential tower.',
+      description: `Listed in ${currentSociety.name.split('(')[0].trim()}. Direct resident pickup from ${userTower}.`,
       aspectRatio: '3/4',
       savesCount: 0,
-      images: images.length > 0 ? images : ['/images/chair.jpg'],
+      images: images.length > 0 ? images : ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'],
       hasVideoProof,
       videoProofNote: hasVideoProof ? 'Video of working condition available' : undefined,
       seller: {
@@ -178,14 +176,14 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
         city: currentSociety.city,
         verifiedResident: true,
         rating: userProfile?.rating || 5.0,
-        dealsCompleted: userProfile?.dealsCompleted || 1,
+        dealsCompleted: userProfile?.dealsCompleted || 0,
         responseTime: '< 10 mins'
       },
-      locationNote: `${currentSociety.name.split('(')[0].trim()} · Pickup from lobby`,
+      locationNote: `${currentSociety.name.split('(')[0].trim()} · Pickup from ${userTower}`,
       isMovingOut,
       bottomLinePrice: Math.round(asking * 0.85),
       status: 'available',
-      tags: detectedData.tags || ['#CommunityThrift', `#${detectedData.category}`],
+      tags: detectedData?.tags || ['#BhangarSpace', `#${category}`],
       listedAgo: 'Just now'
     };
 
@@ -403,13 +401,13 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
           </div>
         </div>
 
-        {/* Smart suggestions status — shown subtly */}
+        {/* Smart suggestions status */}
         <div style={{
           marginBottom: '16px',
           padding: '10px 12px',
           borderRadius: '10px',
-          background: isAnalyzing ? '#FFFBEB' : '#F0FDF4',
-          border: `1px solid ${isAnalyzing ? '#FDE68A' : '#BBF7D0'}`,
+          background: isAnalyzing ? '#FFFBEB' : (detectedData ? '#F0FDF4' : 'var(--bg-subtle)'),
+          border: `1px solid ${isAnalyzing ? '#FDE68A' : (detectedData ? '#BBF7D0' : 'var(--border-hairline)')}`,
           transition: 'all 0.2s ease',
           display: 'flex',
           alignItems: 'center',
@@ -418,18 +416,24 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
         }}>
           {isAnalyzing ? (
             <Sparkles size={13} color="#D97706" />
-          ) : (
+          ) : detectedData ? (
             <CheckCircle2 size={13} color="#16A34A" />
+          ) : (
+            <Sparkles size={13} color="var(--text-muted)" />
           )}
-          <span style={{ fontSize: '11.5px', fontWeight: 500, color: isAnalyzing ? '#92400E' : '#166534', flex: 1 }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 500, color: isAnalyzing ? '#92400E' : (detectedData ? '#166534' : 'var(--text-muted)'), flex: 1 }}>
             {isAnalyzing 
               ? (isGrokConfigured() ? 'Grok AI analyzing item…' : 'Filling in details…') 
-              : (isGrokConfigured() ? 'Valuation & specs auto-filled by Grok' : 'Price and details auto-filled')}
+              : detectedData
+                ? (isGrokConfigured() ? 'Valuation & specs auto-filled by Grok' : 'Price and details auto-filled')
+                : (isGrokConfigured() ? 'Type a title or pick a preset to estimate price with Grok' : 'Enter what you\'re selling to auto-estimate price')}
           </span>
-          <span style={{ fontSize: '10px', fontWeight: 600, color: isAnalyzing ? '#B45309' : '#15803D', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            {isGrokConfigured() ? 'Grok · ' : ''}{detectedData.category}
-          </span>
-          {!isAnalyzing && (
+          {detectedData && (
+            <span style={{ fontSize: '10px', fontWeight: 600, color: isAnalyzing ? '#B45309' : '#15803D', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {isGrokConfigured() ? 'Grok · ' : ''}{detectedData.category}
+            </span>
+          )}
+          {!isAnalyzing && detectedData && (
             <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
               {(detectedData.tags || []).slice(0, 4).map((t, idx) => (
                 <span key={idx} style={{
@@ -458,7 +462,9 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
                 Your asking price (₹)
               </label>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                Retail: ₹{parseInt(originalPrice, 10).toLocaleString('en-IN')}
+                {originalPrice && !isNaN(parseInt(originalPrice, 10))
+                  ? `Retail: ₹${parseInt(originalPrice, 10).toLocaleString('en-IN')}`
+                  : 'Estimated retail price'}
               </span>
             </div>
 
@@ -466,6 +472,7 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
               <input
                 type="number"
                 required
+                placeholder="e.g. 2500"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 style={{
@@ -480,28 +487,30 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
                   letterSpacing: '-0.02em',
                 }}
               />
-              <div style={{ display: 'flex', gap: '4px' }}>
-                {(detectedData.pricePresets || []).map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setPrice(preset.toString())}
-                    style={{
-                      padding: '6px 9px',
-                      borderRadius: '8px',
-                      border: '1px solid',
-                      borderColor: price === preset.toString() ? 'var(--text-primary)' : 'var(--border-hairline)',
-                      background: price === preset.toString() ? 'var(--text-primary)' : '#FFFFFF',
-                      color: price === preset.toString() ? '#FFFFFF' : 'var(--text-secondary)',
-                      fontSize: '11px', fontWeight: 500,
-                      cursor: 'pointer',
-                      transition: 'all 0.12s ease',
-                    }}
-                  >
-                    ₹{preset.toLocaleString('en-IN')}
-                  </button>
-                ))}
-              </div>
+              {detectedData?.pricePresets && detectedData.pricePresets.length > 0 && (
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {detectedData.pricePresets.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setPrice(preset.toString())}
+                      style={{
+                        padding: '6px 9px',
+                        borderRadius: '8px',
+                        border: '1px solid',
+                        borderColor: price === preset.toString() ? 'var(--text-primary)' : 'var(--border-hairline)',
+                        background: price === preset.toString() ? 'var(--text-primary)' : '#FFFFFF',
+                        color: price === preset.toString() ? '#FFFFFF' : 'var(--text-secondary)',
+                        fontSize: '11px', fontWeight: 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.12s ease',
+                      }}
+                    >
+                      ₹{preset.toLocaleString('en-IN')}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

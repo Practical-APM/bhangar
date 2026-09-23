@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Heart, ChevronRight } from 'lucide-react';
+import { Search, Heart, ChevronRight, Sparkles } from 'lucide-react';
 import { SocietyInfo, ThriftItem } from '../data/mockData';
 
 interface HeroSectionProps {
@@ -232,7 +232,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               gap: '10px',
             }}>
               {/* Primary Card */}
-              {featuredItem && (
+              {featuredItem ? (
                 <div
                   className="hero-floating-card-1"
                   onClick={() => onViewDetails && onViewDetails(featuredItem)}
@@ -297,6 +297,64 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                       </span>
                     </div>
                   </div>
+                </div>
+              ) : (
+                <div
+                  onClick={onOpenListItem}
+                  style={{
+                    width: '100%',
+                    background: '#FFFFFF',
+                    border: '1.5px dashed var(--border-subtle)',
+                    borderRadius: '20px',
+                    padding: '24px 20px',
+                    boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.04)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    gap: '12px',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.18s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--text-primary)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  <div style={{
+                    width: '44px', height: '44px',
+                    borderRadius: '12px',
+                    background: '#F0FDF4',
+                    border: '1px solid #BBF7D0',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#15803D'
+                  }}>
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px', letterSpacing: '-0.015em' }}>
+                      Spotlight open in {societyNameClean}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '280px', lineHeight: 1.45 }}>
+                      Be the first to list! Moving out or clearing space? Post your items in under 2 minutes.
+                    </div>
+                  </div>
+                  <span style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: '#FFFFFF',
+                    background: 'var(--text-primary)',
+                    padding: '7px 16px',
+                    borderRadius: 'var(--radius-full)',
+                  }}>
+                    + Post First Listing
+                  </span>
                 </div>
               )}
 

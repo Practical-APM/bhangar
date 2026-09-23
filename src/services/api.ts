@@ -105,7 +105,7 @@ export async function fetchItemsFromDB(societyId?: string): Promise<ThriftItem[]
         query = query.eq('society_id', societyId);
       }
       const { data, error } = await query;
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         return data.map(mapRowToItem);
       }
     } catch (e) {
@@ -118,7 +118,7 @@ export async function fetchItemsFromDB(societyId?: string): Promise<ThriftItem[]
     const local = localStorage.getItem('bhangar_items');
     if (local) {
       const parsed = JSON.parse(local);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch {}
   return INITIAL_THRIFT_ITEMS;
@@ -195,7 +195,7 @@ export async function fetchOffersFromDB(): Promise<SellerOffer[]> {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         return data.map((row) => ({
           id: row.id,
           itemId: row.item_id,
@@ -220,7 +220,7 @@ export async function fetchOffersFromDB(): Promise<SellerOffer[]> {
     const local = localStorage.getItem('bhangar_seller_offers');
     if (local) {
       const parsed = JSON.parse(local);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch {}
   return INITIAL_SELLER_OFFERS;
