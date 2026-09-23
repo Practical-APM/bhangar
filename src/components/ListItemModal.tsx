@@ -7,6 +7,7 @@ interface ListItemModalProps {
   currentSociety: SocietyInfo;
   userTower: string;
   userProfile?: UserProfile;
+  onUpdateUserProfile?: (profile: UserProfile) => void;
   onClose: () => void;
   onItemAdded: (item: ThriftItem) => void;
 }
@@ -15,11 +16,14 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
   currentSociety,
   userTower,
   userProfile,
+  onUpdateUserProfile,
   onClose,
   onItemAdded
 }) => {
   const [images, setImages] = useState<string[]>([]);
   const [hasVideoProof, setHasVideoProof] = useState<boolean>(false);
+  const [sellerPhone, setSellerPhone] = useState<string>(userProfile?.phone || '');
+
 
   const [title, setTitle] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -147,6 +151,13 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
     const category = detectedData ? detectedData.category : 'furniture';
     const roomType = detectedData ? detectedData.roomType : 'living';
 
+    if (sellerPhone && userProfile && onUpdateUserProfile && sellerPhone.trim() !== userProfile.phone) {
+      onUpdateUserProfile({
+        ...userProfile,
+        phone: sellerPhone.trim()
+      });
+    }
+
     const newItem: ThriftItem = {
       id: `item-${Date.now()}`,
       articleNumber: randomArt,
@@ -172,6 +183,7 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
         name: userProfile?.name || `Resident (${userTower})`,
         alias: userProfile?.name || `Resident (${userTower})`,
         tower: userTower,
+        phone: sellerPhone.trim() || userProfile?.phone,
         society: currentSociety.name,
         city: currentSociety.city,
         verifiedResident: true,
@@ -189,6 +201,7 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
 
     onItemAdded(newItem);
     onClose();
+
   };
 
   return (
@@ -514,8 +527,45 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
             </div>
           </div>
 
+          {/* Seller WhatsApp / Contact Number */}
+          <div style={{
+            background: '#F0FDF4',
+            border: '1px solid #BBF7D0',
+            borderRadius: '10px',
+            padding: '12px 14px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#166534' }}>
+                Your WhatsApp / Mobile Number <span style={{ color: '#DC2626' }}>*</span>
+              </label>
+              <span style={{ fontSize: '10.5px', color: '#15803D', fontWeight: 500 }}>
+                For elevator handover
+              </span>
+            </div>
+            <input
+              type="tel"
+              required
+              placeholder="+91 98765 43210"
+              value={sellerPhone}
+              onChange={(e) => setSellerPhone(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #A7F3D0',
+                background: '#FFFFFF',
+                fontSize: '13px',
+                boxSizing: 'border-box'
+              }}
+            />
+            <span style={{ fontSize: '10.5px', color: '#15803D', display: 'block', marginTop: '4px' }}>
+              🤝 Shared with buyers when an offer is placed so they can WhatsApp or call to discuss pickup time off-platform.
+            </span>
+          </div>
+
           {/* Moving out toggle */}
           <label style={{
+
             display: 'flex',
             alignItems: 'center',
             gap: '8px',

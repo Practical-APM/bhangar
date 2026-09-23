@@ -18,8 +18,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   onSelectSociety
 }) => {
   const [name, setName] = useState(userProfile.name || '');
+  const [phone, setPhone] = useState(userProfile.phone || '');
   const [selectedTower, setSelectedTower] = useState(userProfile.tower || currentSociety.towers[0] || 'Tower 1');
-  const [flatNumber, setFlatNumber] = useState(userProfile.flatNumber || '802');
+  const [flatNumber, setFlatNumber] = useState(userProfile.flatNumber || '');
   const [selectedSocId, setSelectedSocId] = useState(currentSociety.id);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -34,8 +35,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     const updated: UserProfile = {
       ...userProfile,
       name: name.trim(),
+      phone: phone.trim(),
       tower: selectedTower,
-      flatNumber: flatNumber.trim() || '802',
+      flatNumber: flatNumber.trim() || 'Floor resident',
       societyId: chosenSoc.id,
       societyName: chosenSoc.name,
       isVerified: true
@@ -44,6 +46,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     onSaveProfile(updated);
     onClose();
   };
+
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -178,7 +181,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             <input
               type="text"
               required
-              placeholder="e.g. Sakar M."
+              placeholder="e.g. Rahul S."
               value={name}
               onChange={(e) => setName(e.target.value)}
               style={{
@@ -191,6 +194,31 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               }}
             />
           </div>
+
+          {/* WhatsApp / Contact Phone Number */}
+          <div>
+            <label style={{ fontSize: '11.5px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+              WhatsApp / Mobile Number
+            </label>
+            <input
+              type="tel"
+              placeholder="+91 98765 43210"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                borderRadius: 'var(--radius-xs)',
+                border: '1px solid var(--border-subtle)',
+                background: '#FFFFFF',
+                fontSize: '13px'
+              }}
+            />
+            <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', display: 'block', marginTop: '3px' }}>
+              Shared with buyer/seller when an offer is placed to coordinate pickup off-platform.
+            </span>
+          </div>
+
 
           {/* Instant Intercom Verification Badge */}
           <div style={{

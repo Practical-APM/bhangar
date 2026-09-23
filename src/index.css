@@ -364,25 +364,45 @@ a {
 }
 
 .desktop-nav {
-  display: flex;
+  display: flex !important;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .mobile-nav {
-  display: none;
+  display: none !important;
 }
 
 @media (max-width: 768px) {
-  .desktop-nav { display: none !important; }
+  .desktop-nav { 
+    display: none !important; 
+  }
   .mobile-nav  {
     display: flex !important;
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
   }
+
+  .brand-logo-img {
+    height: 26px !important;
+  }
+
+  .society-trigger-btn {
+    max-width: 105px !important;
+    padding: 4px 7px 4px 6px !important;
+    font-size: 11px !important;
+  }
+
+  .society-trigger-label {
+    max-width: 75px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
+
 
 /* Header nav button hover */
 .header-nav-btn {

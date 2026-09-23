@@ -211,8 +211,74 @@ export const SellerOffersModal: React.FC<SellerOffersModalProps> = ({
                       </div>
                     )}
 
+                    {/* Buyer Direct Contact for WhatsApp / Call */}
+                    {offer.buyerPhone && (
+                      <div style={{
+                        background: '#F0FDF4',
+                        border: '1px solid #BBF7D0',
+                        borderRadius: 'var(--radius-xs)',
+                        padding: '10px 12px',
+                        marginBottom: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '8px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '13px' }}>📱</span>
+                          <div>
+                            <div style={{ fontSize: '12px', fontWeight: 600, color: '#065F46' }}>
+                              Buyer Contact: {offer.buyerPhone}
+                            </div>
+                            <div style={{ fontSize: '10.5px', color: '#047857' }}>
+                              Connect directly to discuss inspection & elevator handover
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <a
+                            href={`https://wa.me/${offer.buyerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${offer.buyerName}, I received your offer of ₹${offer.offeredPrice.toLocaleString('en-IN')} for "${offer.itemTitle}" on Bhangar.Space. When would you like to drop by for inspection?`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 'var(--radius-xs)',
+                              background: '#059669',
+                              color: '#FFFFFF',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              textDecoration: 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <span>WhatsApp</span>
+                          </a>
+                          <a
+                            href={`tel:${offer.buyerPhone.replace(/\s/g, '')}`}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 'var(--radius-xs)',
+                              background: '#FFFFFF',
+                              border: '1px solid #A7F3D0',
+                              color: '#065F46',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              textDecoration: 'none'
+                            }}
+                          >
+                            Call
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Actions based on Status */}
                     {offer.status === 'pending' && (
+
                       <div>
                         {counteringOfferId === offer.id ? (
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px' }}>

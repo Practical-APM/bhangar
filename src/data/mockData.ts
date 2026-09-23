@@ -24,6 +24,7 @@ export interface ThriftItem {
     name: string;
     alias: string;
     tower: string;
+    phone?: string; // Seller's WhatsApp/Call number for elevator pickup coordination
     society: string;
     city: string;
     verifiedResident: boolean;
@@ -50,6 +51,8 @@ export interface SellerOffer {
   offeredPrice: number;
   buyerName: string;
   buyerTower: string;
+  buyerPhone?: string; // Buyer's contact phone number for WhatsApp/Call
+  sellerPhone?: string; // Seller's contact phone number for WhatsApp/Call
   status: 'pending' | 'accepted' | 'countered' | 'declined';
   counterPrice?: number;
   timestamp: string;
@@ -69,6 +72,7 @@ export interface ItemComment {
 export interface UserProfile {
   name: string;
   email: string;
+  phone?: string; // Contact mobile number (+91)
   authProvider: 'google' | 'guest';
   googleAvatar?: string;
   isLoggedIn: boolean;
@@ -83,20 +87,22 @@ export interface UserProfile {
 }
 
 export const INITIAL_USER_PROFILE: UserProfile = {
-  name: 'Sakar M.',
-  email: 'sakar.m@gmail.com',
-  authProvider: 'google',
-  googleAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-  isLoggedIn: true,
-  flatNumber: '802',
+  name: '',
+  email: '',
+  phone: '',
+  authProvider: 'guest',
+  googleAvatar: undefined,
+  isLoggedIn: false,
+  flatNumber: '',
   tower: 'Tower 4',
   societyId: 'dlf-phase-5',
   societyName: 'DLF Phase 5 (The Crest & Park Place)',
-  isVerified: true,
+  isVerified: false,
   rating: 5.0,
   dealsCompleted: 0,
-  joinedDate: 'Resident since 2024'
+  joinedDate: 'Resident'
 };
+
 
 export const INITIAL_COMMENTS: ItemComment[] = [];
 

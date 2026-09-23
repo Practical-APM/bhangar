@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { X, Video, Send, Check, Sparkles, ShieldCheck, Lock } from 'lucide-react';
-import { ThriftItem } from '../data/mockData';
+import { ThriftItem, UserProfile } from '../data/mockData';
 import { createOfferInDB } from '../services/api';
 
 interface OfferModalProps {
   item: ThriftItem;
   userTower: string;
+  userProfile?: UserProfile;
+  onUpdateUserProfile?: (profile: UserProfile) => void;
   onClose: () => void;
   onItemUpdated: (updatedItem: ThriftItem) => void;
 }
@@ -20,14 +22,19 @@ interface ChatMessage {
 export const MolBhavModal: React.FC<OfferModalProps> = ({
   item,
   userTower,
+  userProfile,
+  onUpdateUserProfile,
   onClose,
   onItemUpdated
 }) => {
+  const [buyerPhone, setBuyerPhone] = useState(userProfile?.phone || '');
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [offerPrice, setOfferPrice] = useState<number>(item.price - 200 > 0 ? item.price - 200 : item.price);
   const [customPrice, setCustomPrice] = useState<string>('');
   const [negotiationStep, setNegotiationStep] = useState<'offer' | 'counter' | 'agreed' | 'held' | 'completed'>(
     item.status === 'held' ? 'held' : 'offer'
   );
+
   const [agreedPrice, setAgreedPrice] = useState<number>(item.price);
   const [counterPrice, setCounterPrice] = useState<number>(item.bottomLinePrice);
   const [counterNote, setCounterNote] = useState<string>('');
@@ -75,6 +82,20 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
     const finalAmount = customPrice ? parseInt(customPrice, 10) : offerPrice;
     if (isNaN(finalAmount) || finalAmount <= 0) return;
 
+    if (!buyerPhone.trim()) {
+      setPhoneError('Please enter your WhatsApp / mobile number so the seller can coordinate with you.');
+      return;
+    }
+    setPhoneError(null);
+
+    // Save phone to profile if available
+    if (userProfile && onUpdateUserProfile && buyerPhone.trim() !== userProfile.phone) {
+      onUpdateUserProfile({
+        ...userProfile,
+        phone: buyerPhone.trim()
+      });
+    }
+
     const isAccepted = finalAmount >= item.bottomLinePrice;
     const suggestedCounter = isAccepted ? undefined : Math.round((finalAmount + item.bottomLinePrice) / 2);
 
@@ -85,13 +106,16 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
       itemImage: item.images[0] || '',
       askingPrice: item.price,
       offeredPrice: finalAmount,
-      buyerName: 'Resident Neighbor',
+      buyerName: userProfile?.name || `Resident (${userTower})`,
       buyerTower: userTower,
+      buyerPhone: buyerPhone.trim(),
+      sellerPhone: item.seller.phone || '',
       status: isAccepted ? 'accepted' : 'pending',
       counterPrice: suggestedCounter,
       timestamp: 'Just now',
-      buyerNote: 'Private offer submitted'
+      buyerNote: 'Offer submitted with direct contact details'
     }).catch((e) => console.warn('[Offer] DB save failed:', e));
+
 
     if (isAccepted) {
       setAgreedPrice(finalAmount);
@@ -346,6 +370,40 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
               </button>
             </div>
 
+            {/* Contact / WhatsApp Number Input */}
+            <div style={{ marginBottom: '14px', textAlign: 'left' }}>
+              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                Your WhatsApp / Mobile Number <span style={{ color: '#059669' }}>*</span>
+              </label>
+              <input
+                type="tel"
+                required
+                placeholder="+91 98765 43210"
+                value={buyerPhone}
+                onChange={(e) => {
+                  setBuyerPhone(e.target.value);
+                  setPhoneError(null);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-xs)',
+                  border: phoneError ? '1px solid #DC2626' : '1px solid var(--border-subtle)',
+                  background: '#FFFFFF',
+                  fontSize: '13px',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', display: 'block', marginTop: '3px' }}>
+                🤝 Shared with {item.seller.name} to quickly discuss pickup time and close the deal off-platform.
+              </span>
+              {phoneError && (
+                <span style={{ fontSize: '11px', color: '#DC2626', display: 'block', marginTop: '3px', fontWeight: 500 }}>
+                  {phoneError}
+                </span>
+              )}
+            </div>
+
             {/* Custom Input & Action */}
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
@@ -458,8 +516,74 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
             >
               Reserve 30-Minute Hold
             </button>
+
+            {/* Direct Seller Contact Card for Indian off-platform handover */}
+            <div style={{
+              marginTop: '16px',
+              padding: '12px 14px',
+              background: '#F0FDF4',
+              border: '1px solid #A7F3D0',
+              borderRadius: 'var(--radius-xs)',
+              textAlign: 'left'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#065F46' }}>
+                  📱 Seller Direct Contact
+                </span>
+                <span style={{ fontSize: '10.5px', color: '#059669', background: '#DCFCE7', padding: '1px 6px', borderRadius: '4px', fontWeight: 500 }}>
+                  {item.seller.tower} Verified
+                </span>
+              </div>
+              <div style={{ fontSize: '12.5px', color: '#064E3B', marginBottom: '8px' }}>
+                <strong>{item.seller.name}</strong> · {item.seller.phone || '+91 98100 23456'}
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <a
+                  href={`https://wa.me/${(item.seller.phone || '919810023456').replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${item.seller.name}, I made an offer of ₹${agreedPrice} for your "${item.title}" on Bhangar.Space. When can I drop by your tower to inspect and pick it up?`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    flex: 1,
+                    padding: '7px 12px',
+                    borderRadius: 'var(--radius-xs)',
+                    background: '#059669',
+                    color: '#FFFFFF',
+                    fontSize: '11.5px',
+                    fontWeight: 600,
+                    textAlign: 'center',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  <span>Chat on WhatsApp</span>
+                </a>
+                <a
+                  href={`tel:${(item.seller.phone || '+919810023456').replace(/\s/g, '')}`}
+                  style={{
+                    padding: '7px 12px',
+                    borderRadius: 'var(--radius-xs)',
+                    background: '#FFFFFF',
+                    border: '1px solid #A7F3D0',
+                    color: '#065F46',
+                    fontSize: '11.5px',
+                    fontWeight: 600,
+                    textAlign: 'center',
+                    textDecoration: 'none'
+                  }}
+                >
+                  Call
+                </a>
+              </div>
+              <div style={{ fontSize: '10.5px', color: '#047857', marginTop: '6px', textAlign: 'center' }}>
+                Discuss a time to meet and take the deal forward off-platform.
+              </div>
+            </div>
           </div>
         )}
+
 
         {/* Hold Active */}
         {negotiationStep === 'held' && (

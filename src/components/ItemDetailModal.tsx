@@ -505,10 +505,11 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 color: 'var(--text-muted)',
                 marginTop: '6px'
               }}>
-                🔒 Private offer · Visible only to you and the seller ({item.seller.alias})
+                🤝 Direct WhatsApp &amp; Phone numbers shared upon offer to discuss pickup off-platform
               </div>
             </div>
           )}
+
         </div>
       </div>
     </div>

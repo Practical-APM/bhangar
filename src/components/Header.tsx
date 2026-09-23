@@ -63,6 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
             <img 
               src="/new_bhangar_logo.png" 
               alt="Bhangar" 
+              className="brand-logo-img"
               style={{
                 height: '32px',
                 width: 'auto',
@@ -80,12 +81,12 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Build a short label: first word of society + tower short */}
             {(() => {
               const rawName = currentSociety.name.split('(')[0].trim();
-              // Take first 2 words max, cap at 12 chars
               const shortName = rawName.split(' ').slice(0, 2).join(' ');
               const label = shortName.length > 12 ? shortName.slice(0, 11) + '\u2026' : shortName;
               const towerShort = userTower.replace('Tower ', 'T');
               return (
                 <button
+                  className="society-trigger-btn"
                   onClick={() => {
                     setShowLocationMenu(!showLocationMenu);
                     setShowMobileMenu(false);
@@ -94,23 +95,22 @@ export const Header: React.FC<HeaderProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '5px',
-                    padding: '6px 10px 6px 8px',
                     borderRadius: 'var(--radius-full)',
                     background: showLocationMenu ? '#F0FDF4' : 'var(--bg-subtle)',
                     border: showLocationMenu ? '1px solid #A7F3D0' : '1px solid var(--border-hairline)',
-                    fontSize: '12px',
                     color: 'var(--text-primary)',
                     fontWeight: 600,
                     whiteSpace: 'nowrap',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
-                    maxWidth: '180px',
                   }}
                 >
-                  <MapPin size={13} color="#059669" strokeWidth={2.2} />
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px' }}>
+                  <MapPin size={13} color="#059669" strokeWidth={2.2} style={{ flexShrink: 0 }} />
+                  <span className="society-trigger-label" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {label}
-                    <span style={{ color: 'var(--text-muted)', fontWeight: 500, marginLeft: '3px' }}>· {towerShort}</span>
+                    <span className="hide-on-mobile" style={{ color: 'var(--text-muted)', fontWeight: 500, marginLeft: '3px' }}>
+                      · {towerShort}
+                    </span>
                   </span>
                   <ChevronDown
                     size={12}
@@ -120,6 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               );
             })()}
+
 
             {showLocationMenu && (
               <>
@@ -252,32 +253,33 @@ export const Header: React.FC<HeaderProps> = ({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '5px',
-                padding: '5px 9px',
+                gap: '6px',
+                padding: '6px 11px',
                 borderRadius: 'var(--radius-xs)',
                 background: 'var(--bg-subtle)',
                 border: '1px solid var(--border-hairline)',
-                fontSize: '11.5px',
+                fontSize: '12px',
                 color: 'var(--text-primary)',
-                fontWeight: 500,
-                whiteSpace: 'nowrap'
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                cursor: 'pointer'
               }}
-              title="View resident profile & Google account"
+              title="View resident profile & account settings"
             >
               {userProfile.googleAvatar ? (
                 <img
                   src={userProfile.googleAvatar}
                   alt={userProfile.name}
-                  style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'cover' }}
+                  style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }}
                 />
               ) : (
                 <div style={{
-                  width: '15px',
-                  height: '15px',
+                  width: '18px',
+                  height: '18px',
                   borderRadius: '50%',
-                  background: '#166534',
+                  background: '#059669',
                   color: '#FFFFFF',
-                  fontSize: '9.5px',
+                  fontSize: '10px',
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
@@ -286,39 +288,53 @@ export const Header: React.FC<HeaderProps> = ({
                   ✓
                 </div>
               )}
-              <span>{userProfile.name.split(' ')[0]}</span>
-              <span className="hide-on-mobile" style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>
-                · {userTower.replace('Tower ', 'T')}-{userProfile.flatNumber}
-              </span>
+              <span>{userProfile.name ? userProfile.name.split(' ')[0] : 'Resident'}</span>
+              {userProfile.flatNumber && (
+                <span className="hide-on-mobile" style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: 500 }}>
+                  · {userTower.replace('Tower ', 'T')}-{userProfile.flatNumber}
+                </span>
+              )}
             </button>
           ) : (
-            /* Google Sign In Button */
+            /* Dedicated High-Visibility Log In Button */
             <button
               onClick={onOpenGoogleLogin}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '5px 10px',
+                gap: '7px',
+                padding: '6px 13px',
                 borderRadius: 'var(--radius-xs)',
                 background: '#FFFFFF',
-                border: '1px solid var(--border-hairline)',
-                fontSize: '11.5px',
+                border: '1.5px solid var(--border-subtle)',
+                fontSize: '12.5px',
                 color: 'var(--text-primary)',
-                fontWeight: 500,
+                fontWeight: 600,
                 whiteSpace: 'nowrap',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--text-primary)';
+                e.currentTarget.style.background = '#F8F9FA';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                e.currentTarget.style.background = '#FFFFFF';
+              }}
+              title="Sign in with Google to explore & trade"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24">
+              <svg width="14" height="14" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
                 <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24z"/>
                 <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
                 <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
               </svg>
-              <span>Sign in</span>
+              <span>Log In</span>
             </button>
           )}
+
 
           {onOpenWishlist && (
             <button
@@ -409,25 +425,101 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* 2. MOBILE NAVIGATION (< 768px): COMPACT & UNCLUTTERED */}
         <div className="mobile-nav">
+          {/* Direct Mobile Sign In / Profile Button */}
+          {!userProfile.isLoggedIn ? (
+            <button
+              onClick={onOpenGoogleLogin}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '5px 8px',
+                borderRadius: 'var(--radius-xs)',
+                background: '#FFFFFF',
+                border: '1.5px solid var(--border-subtle)',
+                color: 'var(--text-primary)',
+                fontSize: '11px',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+              title="Log In"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24z"/>
+                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+              </svg>
+              <span>Log In</span>
+            </button>
+          ) : (
+            <button
+              onClick={onOpenProfile}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '5px 8px',
+                borderRadius: 'var(--radius-xs)',
+                background: 'var(--bg-subtle)',
+                border: '1px solid var(--border-hairline)',
+                color: 'var(--text-primary)',
+                fontSize: '11px',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                cursor: 'pointer'
+              }}
+              title="Resident profile"
+            >
+              {userProfile.googleAvatar ? (
+                <img
+                  src={userProfile.googleAvatar}
+                  alt={userProfile.name}
+                  style={{ width: '15px', height: '15px', borderRadius: '50%', objectFit: 'cover' }}
+                />
+              ) : (
+                <div style={{
+                  width: '15px',
+                  height: '15px',
+                  borderRadius: '50%',
+                  background: '#059669',
+                  color: '#FFFFFF',
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  ✓
+                </div>
+              )}
+              <span>{userProfile.name ? userProfile.name.split(' ')[0] : 'Resident'}</span>
+            </button>
+          )}
+
           {/* Quick List Button */}
           <button
             onClick={onOpenListItem}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
-              padding: '6px 10px',
+              gap: '3px',
+              padding: '5px 8px',
               borderRadius: 'var(--radius-xs)',
               background: 'var(--text-primary)',
               color: '#FFFFFF',
-              fontSize: '11.5px',
+              fontSize: '11px',
               fontWeight: 600,
               whiteSpace: 'nowrap'
             }}
           >
-            <Plus size={13} />
+            <Plus size={12} />
             <span>List</span>
           </button>
+
+
 
           {/* Hamburger Menu Toggle Button */}
           <button

@@ -109,12 +109,61 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             padding: '3px 8px',
             borderRadius: 'var(--radius-xs)',
             fontSize: '11px',
-            fontWeight: 500
+            fontWeight: 500,
+            marginBottom: '10px'
           }}>
             <CheckCircle2 size={12} color="#16a34a" />
             <span>Gatepass & Intercom Verified Resident</span>
           </div>
+
+          {/* Contact Phone Number */}
+          <div style={{
+            paddingTop: '10px',
+            borderTop: '1px solid #EBE5DC',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            {userProfile.phone ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                <span style={{ fontSize: '13px' }}>📱</span>
+                <div>
+                  <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {userProfile.phone}
+                  </div>
+                  <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                    Shared with buyers & sellers on offers for off-platform handover
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div 
+                onClick={() => {
+                  onClose();
+                  onOpenEditProfile();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '13px' }}>📱</span>
+                  <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#D97706' }}>
+                    + Add WhatsApp / Contact Number
+                  </span>
+                </div>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                  Required for offers →
+                </span>
+              </div>
+            )}
+          </div>
         </div>
+
 
         {/* Reputation Stats */}
         <div style={{

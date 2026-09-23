@@ -72,11 +72,18 @@ export function App() {
   const [currentSociety, setCurrentSociety] = useState<SocietyInfo>(() => 
     loadStorage('bhangar_society', METRO_SOCIETIES[0])
   );
-  const [userProfile, setUserProfile] = useState<UserProfile>(() => 
-    loadStorage('bhangar_user_profile', INITIAL_USER_PROFILE)
-  );
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    const saved = loadStorage<UserProfile>('bhangar_user_profile', INITIAL_USER_PROFILE);
+    if (!saved || saved.email === 'sakar.m@gmail.com' || saved.name === 'Sakar M.' || !saved.isLoggedIn) {
+      try {
+        localStorage.removeItem('bhangar_user_profile');
+      } catch {}
+      return INITIAL_USER_PROFILE;
+    }
+    return saved;
+  });
   const [userTower, setUserTower] = useState<string>(() => 
-    loadStorage('bhangar_tower', INITIAL_USER_PROFILE.tower || 'Tower 4')
+    loadStorage('bhangar_tower', 'Tower 4')
   );
   const [items, setItems] = useState<ThriftItem[]>(() => 
     loadStorage('bhangar_items', INITIAL_THRIFT_ITEMS)
@@ -102,7 +109,16 @@ export function App() {
   // Auto-sync state to localStorage
   useEffect(() => saveStorage('bhangar_societies', societies), [societies]);
   useEffect(() => saveStorage('bhangar_society', currentSociety), [currentSociety]);
-  useEffect(() => saveStorage('bhangar_user_profile', userProfile), [userProfile]);
+  useEffect(() => {
+    if (userProfile.isLoggedIn) {
+      saveStorage('bhangar_user_profile', userProfile);
+    } else {
+      try {
+        localStorage.removeItem('bhangar_user_profile');
+      } catch {}
+    }
+  }, [userProfile]);
+
   useEffect(() => saveStorage('bhangar_tower', userTower), [userTower]);
   useEffect(() => saveStorage('bhangar_items', items), [items]);
   useEffect(() => saveStorage('bhangar_comments', comments), [comments]);
@@ -411,14 +427,12 @@ export function App() {
     if (isSupabaseConfigured()) {
       await signOutFromSupabase();
     }
-    setUserProfile((prev) => ({
-      ...prev,
-      isLoggedIn: false,
-      email: '',
-      name: 'Guest Resident',
-      googleAvatar: undefined
-    }));
+    try {
+      localStorage.removeItem('bhangar_user_profile');
+    } catch {}
+    setUserProfile(INITIAL_USER_PROFILE);
   };
+
 
 
   const savedItems = items.filter((it) => savedIds.has(it.id));
@@ -697,6 +711,8 @@ export function App() {
         <MolBhavModal
           item={activeOfferItem}
           userTower={userTower}
+          userProfile={userProfile}
+          onUpdateUserProfile={(up) => setUserProfile(up)}
           onClose={() => setActiveOfferItem(null)}
           onItemUpdated={handleItemUpdated}
         />
@@ -714,7 +730,7 @@ export function App() {
             requireAuth(() => {
               setActiveDetailItem(null);
               setActiveOfferItem(it);
-            }, `Sign in with Google to make offers on ${it.title}`);
+            }, `Sign in to make offers on ${it.title}`);
           }}
           onOpenSellerOffers={() => {
             setActiveDetailItem(null);
@@ -728,10 +744,12 @@ export function App() {
           currentSociety={currentSociety}
           userTower={userTower}
           userProfile={userProfile}
+          onUpdateUserProfile={(up) => setUserProfile(up)}
           onClose={() => setShowListItemModal(false)}
           onItemAdded={handleItemAdded}
         />
       )}
+
 
       {showWishlistModal && (
         <WishlistModal
