@@ -1,0 +1,558 @@
+@import url('https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+
+:root {
+  /* Minimalist Nordic Typography */
+  --font-sans: 'Albert Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Albert Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Nordic Serene Neutral Palette */
+  --bg-page: #F8F7F5;
+  --bg-surface: #FFFFFF;
+  --bg-canvas: #FFFFFF;
+  --bg-subtle: #F2F1EF;
+  --bg-hover: #ECEAE7;
+
+  --border-hairline: #E6E4E0;
+  --border-subtle: #D2CFC9;
+  --border-strong: #1A1A1A;
+
+  --text-primary: #181614;
+  --text-secondary: #52504C;
+  --text-muted: #8A8682;
+  --text-inverse: #FFFFFF;
+
+  /* Accent — Thrift.Space green + warm amber */
+  --accent-green: #059669;
+  --accent-green-subtle: #ECFDF5;
+  --accent-green-border: #A7F3D0;
+  --accent-amber: #D97706;
+  --accent-amber-subtle: #FFFBEB;
+
+  /* Legacy compat */
+  --ikea-yellow: #F7D643;
+  --ikea-yellow-subtle: #FEFBF0;
+  --ikea-blue: #0058A3;
+  --ikea-blue-subtle: #F0F5FA;
+
+  --radius-xs: 10px;
+  --radius-sm: 16px;
+  --radius-md: 22px;
+  --radius-lg: 30px;
+  --radius-full: 9999px;
+
+  /* Layered elevation — offset + softblur, never zero-offset halo */
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-card:   0 2px 8px -1px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-hover:  0 12px 28px -6px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.04);
+  --shadow-menu:   0 8px 24px -4px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05);
+  --shadow-overlay:0 20px 60px -8px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.06);
+
+  /* Motion */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:   cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 0.12s;
+  --duration-base: 0.20s;
+  --duration-slow: 0.35s;
+}
+
+/* =========================================================
+   RESET
+   ========================================================= */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: -0.008em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  caret-color: var(--accent-green);
+}
+
+/* =========================================================
+   THEMED BROWSER SURFACES — the signal that separates 
+   built pages from assembled ones
+   ========================================================= */
+::selection {
+  background: var(--text-primary);
+  color: #FFFFFF;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-green);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CCCAC6;
+  border-radius: var(--radius-full);
+  transition: background var(--duration-fast) ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A8A5A0;
+}
+
+/* Themed caret in inputs */
+input, textarea {
+  caret-color: var(--accent-green);
+}
+
+/* =========================================================
+   TYPOGRAPHY
+   ========================================================= */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+p {
+  max-width: 68ch;
+}
+
+/* Tabular figures for prices */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* =========================================================
+   GLOBAL ELEMENT DEFAULTS
+   ========================================================= */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition:
+    opacity var(--duration-fast) ease,
+    background-color var(--duration-base) var(--ease-out-expo),
+    border-color var(--duration-base) ease,
+    transform var(--duration-fast) var(--ease-out-expo),
+    box-shadow var(--duration-base) ease;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  transition: border-color var(--duration-base) ease, box-shadow var(--duration-base) ease;
+}
+
+input:focus, textarea:focus {
+  border-color: var(--accent-green) !important;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.08) !important;
+  outline: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* =========================================================
+   MODAL OVERLAY & CONTENT
+   ========================================================= */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 12, 10, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeInOverlay var(--duration-fast) ease-out;
+}
+
+.modal-content {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-overlay);
+  animation: modalRise var(--duration-slow) var(--ease-out-expo);
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes modalRise {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* =========================================================
+   MASONRY FEED
+   ========================================================= */
+.masonry-feed {
+  column-count: 1;
+  column-gap: 18px;
+  width: 100%;
+}
+
+@media (min-width: 560px) {
+  .masonry-feed { column-count: 2; column-gap: 18px; }
+}
+
+@media (min-width: 960px) {
+  .masonry-feed { column-count: 3; column-gap: 20px; }
+}
+
+@media (min-width: 1280px) {
+  .masonry-feed { column-count: 4; column-gap: 22px; }
+}
+
+.masonry-item {
+  break-inside: avoid;
+  margin-bottom: 20px;
+  display: inline-block;
+  width: 100%;
+}
+
+/* =========================================================
+   PIN CARD
+   ========================================================= */
+.pin-card {
+  transition:
+    transform var(--duration-base) var(--ease-out-expo),
+    box-shadow var(--duration-base) var(--ease-out-expo),
+    border-color var(--duration-base) ease;
+}
+
+.pin-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
+  border-color: #B8B4AE !important;
+}
+
+.pin-img-wrapper img {
+  transition: transform 0.4s var(--ease-out-expo);
+}
+
+.pin-card:hover .pin-img-wrapper img {
+  transform: scale(1.04);
+}
+
+/* Make offer CTA lift on hover */
+.pin-card:hover .card-cta-btn {
+  background: #2C2A27 !important;
+}
+
+/* =========================================================
+   HORIZONTAL RIBBON
+   ========================================================= */
+.mood-ribbon-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.mood-ribbon {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 2px 4px 8px;
+}
+
+.mood-ribbon::-webkit-scrollbar {
+  display: none;
+}
+
+.mood-ribbon-wrapper::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 8px;
+  width: 32px;
+  background: linear-gradient(to right, rgba(248, 247, 245, 0), var(--bg-page));
+  pointer-events: none;
+}
+
+/* Category pill hover */
+.category-pill {
+  transition:
+    background-color var(--duration-fast) ease,
+    color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease,
+    transform var(--duration-fast) var(--ease-out-expo),
+    box-shadow var(--duration-fast) ease;
+}
+
+.category-pill:hover:not(.active) {
+  background: var(--bg-subtle) !important;
+  border-color: var(--border-subtle) !important;
+  transform: translateY(-1px);
+}
+
+.category-pill.active {
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+.header-inner {
+  width: 100%;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .header-inner {
+    padding: 0 14px;
+    height: 56px;
+    gap: 8px;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  .compact-mobile-text {
+    max-width: 96px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
+  }
+}
+
+.desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.mobile-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-nav { display: none !important; }
+  .mobile-nav  {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+}
+
+/* Header nav button hover */
+.header-nav-btn {
+  transition:
+    background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
+}
+
+.header-nav-btn:hover {
+  background: var(--bg-subtle) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+/* =========================================================
+   MOBILE DRAWER
+   ========================================================= */
+@keyframes slideDownDrawer {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   HERO ANIMATIONS
+   ========================================================= */
+@keyframes floatCard {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50%       { transform: translateY(-8px) rotate(0.4deg); }
+}
+
+@keyframes floatCardSlow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50%       { transform: translateY(6px) rotate(-0.4deg); }
+}
+
+@keyframes heroTextFadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes heroSubFadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero-text-animate {
+  animation: heroTextFadeUp 0.6s var(--ease-out-expo) both;
+}
+
+.hero-sub-animate {
+  animation: heroSubFadeUp 0.6s var(--ease-out-expo) 0.08s both;
+}
+
+.hero-body-animate {
+  animation: heroSubFadeUp 0.6s var(--ease-out-expo) 0.16s both;
+}
+
+.hero-cta-animate {
+  animation: heroSubFadeUp 0.6s var(--ease-out-expo) 0.24s both;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 32px;
+  align-items: center;
+}
+
+@media (max-width: 992px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.hero-floating-card-1 {
+  animation: floatCard 5s ease-in-out infinite;
+}
+
+.hero-floating-card-2 {
+  animation: floatCardSlow 6.5s ease-in-out infinite;
+}
+
+/* =========================================================
+   LOGO MORPHING
+   ========================================================= */
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform var(--duration-base) var(--ease-out-expo);
+}
+
+.logo-container:hover  { transform: translateY(-0.5px); }
+.logo-container:active { transform: scale(0.96); }
+
+.logo-monogram-box {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #FFFFFF;
+  perspective: 600px;
+  transition: all 0.28s var(--ease-out-expo);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.logo-container:hover .logo-monogram-box {
+  transform: rotate(-7deg) scale(1.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.24);
+}
+
+.logo-word-track {
+  display: inline-flex;
+  flex-direction: column;
+  height: 22px;
+  overflow: hidden;
+  position: relative;
+  vertical-align: middle;
+}
+
+.logo-word-slider {
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.45s var(--ease-out-expo);
+}
+
+.logo-word-slider.shift-active {
+  transform: translateY(-22px);
+}
+
+.logo-word-item {
+  height: 22px;
+  line-height: 22px;
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+/* =========================================================
+   UTILITY
+   ========================================================= */
+
+/* Smooth reveal for dropdown panels */
+@keyframes panelReveal {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.panel-reveal {
+  animation: panelReveal var(--duration-base) var(--ease-out-expo);
+}
+
+/* Skeleton shimmer for loading */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-subtle) 25%, var(--bg-hover) 50%, var(--bg-subtle) 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
