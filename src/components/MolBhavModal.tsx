@@ -32,8 +32,8 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
   const [counterPrice, setCounterPrice] = useState<number>(item.bottomLinePrice);
   const [counterNote, setCounterNote] = useState<string>('');
 
-  // 45-min hold countdown
-  const [secondsRemaining, setSecondsRemaining] = useState<number>(45 * 60);
+  // 30-min hold countdown
+  const [secondsRemaining, setSecondsRemaining] = useState<number>(30 * 60);
   const [showVideo, setShowVideo] = useState<boolean>(false);
 
   // In-app coordination chat
@@ -107,7 +107,7 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
         {
           id: (Date.now() + 1).toString(),
           sender: 'seller',
-          text: `Offer of ₹${finalAmount.toLocaleString('en-IN')} accepted. You can reserve a 45-minute hold to come and inspect.`,
+          text: `Offer of ₹${finalAmount.toLocaleString('en-IN')} accepted. You can reserve a 30-minute hold to come and inspect.`,
           timestamp: 'Just now'
         }
       ]);
@@ -140,7 +140,7 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
 
   const handleLockHold = () => {
     setNegotiationStep('held');
-    setSecondsRemaining(45 * 60);
+    setSecondsRemaining(30 * 60);
 
     const updated = {
       ...item,
@@ -442,7 +442,7 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
               Price agreed at ₹{agreedPrice.toLocaleString('en-IN')}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-              Lock a 45-minute hold while you walk to {item.seller.tower} to inspect.
+              Lock a 30-minute hold while you walk to {item.seller.tower} to inspect.
             </div>
             <button
               type="button"
@@ -456,7 +456,7 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
                 fontWeight: 500
               }}
             >
-              Reserve 45-Minute Hold
+              Reserve 30-Minute Hold
             </button>
           </div>
         )}

@@ -270,7 +270,7 @@ export const SellerOffersModal: React.FC<SellerOffersModalProps> = ({
                               }}
                             >
                               <Check size={13} />
-                              <span>Accept & Lock 45-Min Hold</span>
+                              <span>Accept & Lock 30-Min Hold</span>
                             </button>
 
                             <button
@@ -317,7 +317,7 @@ export const SellerOffersModal: React.FC<SellerOffersModalProps> = ({
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
                           <Check size={14} color="#059669" />
-                          <span>Accepted! 45-min hold active for {offer.buyerName}</span>
+                          <span>Accepted! 30-min hold active for {offer.buyerName}</span>
                         </div>
                         <button
                           onClick={() => onMarkItemSold(offer.itemId)}
