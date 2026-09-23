@@ -498,40 +498,19 @@ export function App() {
             <span style={{ margin: '0 6px', color: 'var(--border-subtle)' }}>·</span>
             <span style={{ color: 'var(--text-muted)' }}>Tenant moving liquidation &amp; cheap finds. No BS.</span>
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button
-              onClick={() => setShowSocietyModal(true)}
-              style={{
-                background: 'none', border: 'none',
-                color: 'var(--text-muted)',
-                textDecoration: 'underline',
-                textUnderlineOffset: '2px',
-                fontSize: '11.5px',
-                cursor: 'pointer', padding: 0,
-              }}
-            >
-              + Add your society
-            </button>
-            <span style={{ color: 'var(--border-subtle)' }}>·</span>
-            <button
-              onClick={() => {
-                if (window.confirm('Reset local demo listings and data to defaults?')) {
-                  localStorage.clear();
-                  window.location.reload();
-                }
-              }}
-              style={{
-                background: 'none', border: 'none',
-                color: 'var(--text-muted)',
-                fontSize: '11px',
-                cursor: 'pointer', padding: 0,
-                opacity: 0.65,
-              }}
-              title="Clears local browser storage and reloads seed listings"
-            >
-              Reset demo
-            </button>
-          </div>
+          <button
+            onClick={() => setShowSocietyModal(true)}
+            style={{
+              background: 'none', border: 'none',
+              color: 'var(--text-muted)',
+              textDecoration: 'underline',
+              textUnderlineOffset: '2px',
+              fontSize: '11.5px',
+              cursor: 'pointer', padding: 0,
+            }}
+          >
+            + Add your society
+          </button>
         </div>
       </footer>
 
