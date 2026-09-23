@@ -24,6 +24,14 @@ import {
   UserProfile,
   ItemComment 
 } from './data/mockData';
+import {
+  fetchItemsFromDB,
+  createItemInDB,
+  fetchOffersFromDB,
+  updateOfferStatusInDB,
+  createCommentInDB,
+  subscribeToRealtimeChanges
+} from './services/api';
 
 function loadStorage<T>(key: string, fallback: T): T {
   try {
@@ -85,6 +93,31 @@ export function App() {
   useEffect(() => saveStorage('bhangar_comments', comments), [comments]);
   useEffect(() => saveStorage('bhangar_saved_ids', Array.from(savedIds)), [savedIds]);
   useEffect(() => saveStorage('bhangar_seller_offers', sellerOffers), [sellerOffers]);
+
+  // Initial fetch from backend if connected + Realtime subscriptions
+  useEffect(() => {
+    fetchItemsFromDB(currentSociety.id).then((fetched) => {
+      if (fetched && fetched.length > 0) setItems(fetched);
+    });
+    fetchOffersFromDB().then((offers) => {
+      if (offers && offers.length > 0) setSellerOffers(offers);
+    });
+
+    const unsubscribe = subscribeToRealtimeChanges(
+      () => {
+        fetchItemsFromDB(currentSociety.id).then((refetched) => {
+          if (refetched && refetched.length > 0) setItems(refetched);
+        });
+      },
+      () => {
+        fetchOffersFromDB().then((refetched) => {
+          if (refetched && refetched.length > 0) setSellerOffers(refetched);
+        });
+      }
+    );
+
+    return () => unsubscribe();
+  }, [currentSociety.id]);
 
   // Core Modals
   const [activeOfferItem, setActiveOfferItem] = useState<ThriftItem | null>(null);
@@ -209,8 +242,14 @@ export function App() {
     setItems((prev) => prev.map((it) => (it.id === updatedItem.id ? updatedItem : it)));
   };
 
-  const handleItemAdded = (newItem: ThriftItem) => {
+  const handleItemAdded = async (newItem: ThriftItem) => {
     setItems((prev) => [newItem, ...prev]);
+    try {
+      const persisted = await createItemInDB(newItem);
+      setItems((prev) => prev.map((it) => (it.id === persisted.id ? persisted : it)));
+    } catch (e) {
+      console.warn('[ItemAdded] DB sync error:', e);
+    }
   };
 
   // Seller Offer Actions
@@ -226,6 +265,7 @@ export function App() {
           : it
       )
     );
+    updateOfferStatusInDB(offer.id, 'accepted');
   };
 
   const handleCounterSellerOffer = (offerId: string, counterPrice: number) => {
@@ -236,12 +276,14 @@ export function App() {
           : o
       )
     );
+    updateOfferStatusInDB(offerId, 'countered', counterPrice);
   };
 
   const handleDeclineSellerOffer = (offerId: string) => {
     setSellerOffers((prev) =>
       prev.map((o) => (o.id === offerId ? { ...o, status: 'declined' as const } : o))
     );
+    updateOfferStatusInDB(offerId, 'declined');
   };
 
   const handleMarkItemSold = (itemId: string) => {
@@ -276,6 +318,7 @@ export function App() {
         isSeller: false
       };
       setComments((prev) => [newCmt, ...prev]);
+      createCommentInDB(newCmt);
     }, `Sign in with Google to post questions in ${currentSociety.name.split('(')[0].trim()}`);
   };
 

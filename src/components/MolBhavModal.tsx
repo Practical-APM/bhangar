@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Video, Send, Check, Sparkles, ShieldCheck, Lock } from 'lucide-react';
 import { ThriftItem } from '../data/mockData';
+import { createOfferInDB } from '../services/api';
 
 interface OfferModalProps {
   item: ThriftItem;
@@ -74,7 +75,25 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
     const finalAmount = customPrice ? parseInt(customPrice, 10) : offerPrice;
     if (isNaN(finalAmount) || finalAmount <= 0) return;
 
-    if (finalAmount >= item.bottomLinePrice) {
+    const isAccepted = finalAmount >= item.bottomLinePrice;
+    const suggestedCounter = isAccepted ? undefined : Math.round((finalAmount + item.bottomLinePrice) / 2);
+
+    createOfferInDB({
+      id: 'off-' + Date.now(),
+      itemId: item.id,
+      itemTitle: item.title,
+      itemImage: item.images[0] || '',
+      askingPrice: item.price,
+      offeredPrice: finalAmount,
+      buyerName: 'Resident Neighbor',
+      buyerTower: userTower,
+      status: isAccepted ? 'accepted' : 'pending',
+      counterPrice: suggestedCounter,
+      timestamp: 'Just now',
+      buyerNote: 'Offer sent via MolBhav negotiation'
+    }).catch((e) => console.warn('[Offer] DB save failed:', e));
+
+    if (isAccepted) {
       setAgreedPrice(finalAmount);
       setNegotiationStep('agreed');
       setChatMessages((prev) => [
@@ -93,9 +112,8 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
         }
       ]);
     } else {
-      const suggestedCounter = Math.round((finalAmount + item.bottomLinePrice) / 2);
-      setCounterPrice(suggestedCounter);
-      setCounterNote(`I can do ₹${suggestedCounter.toLocaleString('en-IN')} as my bottom-line price.`);
+      setCounterPrice(suggestedCounter!);
+      setCounterNote(`I can do ₹${suggestedCounter!.toLocaleString('en-IN')} as my bottom-line price.`);
       setNegotiationStep('counter');
       setChatMessages((prev) => [
         ...prev,
@@ -108,7 +126,7 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
         {
           id: (Date.now() + 1).toString(),
           sender: 'seller',
-          text: `Counter-offer: ₹${suggestedCounter.toLocaleString('en-IN')}. Let me know if that works.`,
+          text: `Counter-offer: ₹${suggestedCounter!.toLocaleString('en-IN')}. Let me know if that works.`,
           timestamp: 'Just now'
         }
       ]);
