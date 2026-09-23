@@ -61,7 +61,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
             <img 
-              src="/bhangar_logo.png" 
+              src="/new_bhangar_logo.png" 
               alt="Bhangar" 
               style={{
                 height: '32px',
