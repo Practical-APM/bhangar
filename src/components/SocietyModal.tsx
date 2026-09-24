@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Building2, Search, PlusCircle, CheckCircle2, Users, MapPin, Sparkles, ArrowRight } from 'lucide-react';
+import { X, Building2, Search, PlusCircle, CheckCircle2, MapPin, ArrowRight } from 'lucide-react';
 import { SocietyInfo, SocietyRequest } from '../data/mockData';
 
 interface SocietyModalProps {
@@ -20,40 +20,54 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
   const [activeTab, setActiveTab] = useState<'explore' | 'request'>('explore');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Request Society Form State
+  // Add Society Form State (no pre-filled dummy data)
   const [name, setName] = useState('');
   const [city, setCity] = useState('Gurugram');
   const [locality, setLocality] = useState('');
   const [pincode, setPincode] = useState('');
-  const [towersCount, setTowersCount] = useState('6');
-  const [flatsCount, setFlatsCount] = useState('800');
-  const [userRole, setUserRole] = useState<'owner' | 'tenant' | 'rwa' | 'enthusiast'>('owner');
-  const [shareWhatsApp, setShareWhatsApp] = useState(true);
+  const [towersCount, setTowersCount] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [submittedSociety, setSubmittedSociety] = useState<SocietyInfo | null>(null);
 
   const filteredSocieties = societies.filter(s => 
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.area && s.area.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (s.pincode && s.pincode.includes(searchQuery))
   );
 
-  const handleRequestSubmit = (e: React.FormEvent) => {
+  const handleAddSocietySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
+    const count = parseInt(towersCount, 10) || 4;
     const newRequest: SocietyRequest = {
-      id: `req-${Date.now()}`,
+      id: `soc-${Date.now()}`,
       name: name.trim(),
       city: city.trim(),
       locality: locality.trim() || undefined,
       pincode: pincode.trim() || undefined,
-      towersCount: parseInt(towersCount, 10) || 4,
-      approxFlats: parseInt(flatsCount, 10) || 500,
-      applicantRole: userRole,
+      towersCount: count,
+      approxFlats: count * 100,
+      applicantRole: 'resident',
       requestedAt: 'Just now'
     };
 
     onRequestSociety(newRequest);
+    
+    const createdSoc: SocietyInfo = {
+      id: newRequest.id,
+      name: newRequest.name,
+      city: newRequest.city,
+      area: newRequest.locality,
+      pincode: newRequest.pincode,
+      activeListingsCount: 0,
+      residentCount: 0,
+      isLive: true,
+      towers: Array.from({ length: count }, (_, i) => `Tower ${i + 1}`)
+    };
+    
+    setSubmittedSociety(createdSoc);
     setSubmitted(true);
   };
 
@@ -62,7 +76,7 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
       <div 
         className="modal-content"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '580px', padding: '24px' }}
+        style={{ maxWidth: '540px', padding: '24px' }}
       >
         {/* Header */}
         <div style={{
@@ -75,9 +89,9 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: 'var(--radius-xs)',
+              width: '30px',
+              height: '30px',
+              borderRadius: '8px',
               background: '#F0FDF4',
               color: '#15803D',
               display: 'flex',
@@ -87,18 +101,24 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
               <Building2 size={16} />
             </div>
             <div>
-              <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                Society Hub & Campus Directory
+              <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+                Apartment Societies
               </h2>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                Zero-transit hyperlocal circular trading within gated complexes
+              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                Select your residential community or add a new society
               </div>
             </div>
           </div>
           <button 
             onClick={onClose}
-            style={{ color: 'var(--text-muted)', padding: '4px' }}
-            aria-label="Close society modal"
+            style={{ 
+              color: 'var(--text-muted)', 
+              padding: '4px',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+            aria-label="Close"
           >
             <X size={18} />
           </button>
@@ -109,7 +129,7 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
           display: 'flex',
           background: 'var(--bg-subtle)',
           padding: '3px',
-          borderRadius: 'var(--radius-xs)',
+          borderRadius: '8px',
           marginBottom: '16px',
           border: '1px solid var(--border-hairline)'
         }}>
@@ -119,7 +139,7 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
             style={{
               flex: 1,
               padding: '7px 12px',
-              borderRadius: 'calc(var(--radius-xs) - 2px)',
+              borderRadius: '6px',
               fontSize: '12px',
               fontWeight: activeTab === 'explore' ? 600 : 500,
               background: activeTab === 'explore' ? '#FFFFFF' : 'transparent',
@@ -130,7 +150,7 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
               transition: 'all 0.15s ease'
             }}
           >
-            Live Societies ({societies.length})
+            Available Societies ({societies.length})
           </button>
           <button
             type="button"
@@ -138,7 +158,7 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
             style={{
               flex: 1,
               padding: '7px 12px',
-              borderRadius: 'calc(var(--radius-xs) - 2px)',
+              borderRadius: '6px',
               fontSize: '12px',
               fontWeight: activeTab === 'request' ? 600 : 500,
               background: activeTab === 'request' ? '#FFFFFF' : 'transparent',
@@ -154,11 +174,11 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
             }}
           >
             <PlusCircle size={13} />
-            <span>+ Add / Request My Society</span>
+            <span>+ Add My Society</span>
           </button>
         </div>
 
-        {/* Tab 1: Live Societies */}
+        {/* Tab 1: Available Societies */}
         {activeTab === 'explore' && (
           <div>
             {/* Search Input */}
@@ -171,21 +191,23 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
                 left: '12px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: 'var(--text-muted)'
+                color: 'var(--text-muted)',
+                pointerEvents: 'none'
               }} />
               <input 
                 type="text"
-                placeholder="Search by society name, city or pincode..."
+                placeholder="Search by society name, locality, or city..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '9px 12px 9px 34px',
-                  borderRadius: 'var(--radius-xs)',
+                  borderRadius: '8px',
                   border: '1px solid var(--border-subtle)',
-                  background: 'var(--bg-canvas)',
+                  background: '#FFFFFF',
                   fontSize: '13px',
-                  outline: 'none'
+                  outline: 'none',
+                  boxSizing: 'border-box'
                 }}
               />
             </div>
@@ -196,8 +218,8 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
               overflowY: 'auto',
               display: 'flex',
               flexDirection: 'column',
-              gap: '10px',
-              paddingRight: '4px'
+              gap: '8px',
+              paddingRight: '2px'
             }}>
               {filteredSocieties.map((soc) => {
                 const isSelected = soc.id === currentSociety.id;
@@ -209,10 +231,10 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
                       onClose();
                     }}
                     style={{
-                      padding: '12px 14px',
-                      borderRadius: 'var(--radius-xs)',
+                      padding: '11px 14px',
+                      borderRadius: '10px',
                       border: isSelected ? '1.5px solid var(--text-primary)' : '1px solid var(--border-hairline)',
-                      background: isSelected ? '#FAFAF9' : 'var(--bg-canvas)',
+                      background: isSelected ? '#FAFAF9' : '#FFFFFF',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -225,33 +247,18 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
                         <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
                           {soc.name}
                         </span>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '10px',
-                          padding: '1px 6px',
-                          borderRadius: 'var(--radius-full)',
-                          background: '#ECFDF5',
-                          color: '#047857',
-                          fontWeight: 500
-                        }}>
-                          <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10B981' }} />
-                          Live Hub
-                        </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11.5px', color: 'var(--text-muted)' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                           <MapPin size={11} />
-                          {soc.city} {soc.pincode ? `(${soc.pincode})` : ''}
+                          {soc.city}{soc.area ? ` · ${soc.area}` : ''}{soc.pincode ? ` (${soc.pincode})` : ''}
                         </span>
-                        <span>·</span>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                          <Users size={11} />
-                          {soc.residentCount || 1200}+ residents
-                        </span>
-                        <span>·</span>
-                        <span>{soc.towers.length} Towers</span>
+                        {soc.towers && soc.towers.length > 0 && (
+                          <>
+                            <span>·</span>
+                            <span>{soc.towers.length} Towers</span>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -263,13 +270,13 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
                           gap: '4px',
                           fontSize: '11px',
                           fontWeight: 600,
-                          color: 'var(--text-primary)',
-                          background: '#E5E7EB',
-                          padding: '4px 8px',
-                          borderRadius: 'var(--radius-xs)'
+                          color: '#059669',
+                          background: '#ECFDF5',
+                          padding: '4px 9px',
+                          borderRadius: '6px'
                         }}>
-                          <CheckCircle2 size={12} />
-                          Active
+                          <CheckCircle2 size={12} color="#059669" />
+                          Selected
                         </span>
                       ) : (
                         <button
@@ -278,7 +285,7 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
                             fontSize: '11px',
                             fontWeight: 600,
                             padding: '5px 10px',
-                            borderRadius: 'var(--radius-xs)',
+                            borderRadius: '6px',
                             background: '#FFFFFF',
                             border: '1px solid var(--border-subtle)',
                             color: 'var(--text-primary)',
@@ -296,7 +303,7 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
               {filteredSocieties.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)' }}>
                   <Building2 size={24} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
-                  <p style={{ fontSize: '13px', margin: '0 0 8px 0' }}>No societies found for "{searchQuery}"</p>
+                  <p style={{ fontSize: '13px', margin: '0 0 8px 0' }}>No societies found matching "{searchQuery}"</p>
                   <button
                     type="button"
                     onClick={() => {
@@ -313,31 +320,31 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
                       cursor: 'pointer'
                     }}
                   >
-                    + Request to add "{searchQuery}" as a beta society
+                    + Add "{searchQuery}" as a new society
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Bottom info banner */}
+            {/* Bottom helper */}
             <div style={{
               marginTop: '16px',
-              padding: '10px 12px',
-              borderRadius: 'var(--radius-xs)',
+              padding: '10px 14px',
+              borderRadius: '8px',
               background: '#F9FAFB',
               border: '1px solid var(--border-hairline)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                Don't see your residential society? Launch Bhangar.Space in your high-rise today.
+              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                Don't see your society? Add it to start listing items with your neighbors.
               </div>
               <button
                 type="button"
                 onClick={() => setActiveTab('request')}
                 style={{
-                  fontSize: '11px',
+                  fontSize: '11.5px',
                   fontWeight: 600,
                   color: 'var(--text-primary)',
                   background: 'none',
@@ -355,11 +362,11 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
           </div>
         )}
 
-        {/* Tab 2: Request / Add Society */}
+        {/* Tab 2: Add Society */}
         {activeTab === 'request' && (
           <div>
             {submitted ? (
-              <div style={{ textAlign: 'center', padding: '28px 16px' }}>
+              <div style={{ textAlign: 'center', padding: '24px 16px' }}>
                 <div style={{
                   width: '44px',
                   height: '44px',
@@ -374,32 +381,33 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
                   <CheckCircle2 size={24} />
                 </div>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 6px 0' }}>
-                  {name} registered for Beta Launch!
+                  {name} Added!
                 </h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 16px 0', lineHeight: 1.5, maxWidth: '380px', marginInline: 'auto' }}>
-                  Your society is added to your active hubs. Share Bhangar.Space with your tower neighbors to buy & sell cheap moving setups with zero packing!
+                <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '0 0 18px 0', lineHeight: 1.5, maxWidth: '380px', marginInline: 'auto' }}>
+                  Your society is now active. You and your neighbors can start listing pre-owned furniture, electronics, and appliances.
                 </p>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <a
-                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey neighbors! Check out Bhangar.Space (BS) for our society (${name}). Moving in? Buy cheap furniture & electronics from neighbors. Moving out? Sell off your setup in 24h before moving day with zero packaging! Browse here: https://bhangar.space`)}`}
-                    target="_blank"
-                    rel="noreferrer"
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (submittedSociety) {
+                        onSelectSociety(submittedSociety);
+                      }
+                      onClose();
+                    }}
                     style={{
-                      padding: '8px 16px',
+                      padding: '9px 18px',
                       borderRadius: 'var(--radius-full)',
-                      background: '#25D366',
+                      background: 'var(--text-primary)',
                       color: '#FFFFFF',
-                      fontSize: '12px',
+                      fontSize: '12.5px',
                       fontWeight: 600,
-                      textDecoration: 'none',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      boxShadow: '0 2px 8px rgba(37, 211, 102, 0.25)'
+                      border: 'none',
+                      cursor: 'pointer'
                     }}
                   >
-                    <span>Share on WhatsApp Group</span>
-                  </a>
+                    Switch to {name}
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -407,63 +415,48 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
                       setActiveTab('explore');
                     }}
                     style={{
-                      padding: '8px 16px',
+                      padding: '9px 16px',
                       borderRadius: 'var(--radius-full)',
-                      background: 'var(--text-primary)',
-                      color: '#FFFFFF',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      border: 'none',
+                      background: '#FFFFFF',
+                      border: '1px solid var(--border-subtle)',
+                      color: 'var(--text-secondary)',
+                      fontSize: '12.5px',
+                      fontWeight: 500,
                       cursor: 'pointer'
                     }}
                   >
-                    View Societies List
+                    View All Societies
                   </button>
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleRequestSubmit}>
-                <div style={{
-                  marginBottom: '12px',
-                  padding: '10px 12px',
-                  borderRadius: 'var(--radius-xs)',
-                  background: '#F0F9FF',
-                  border: '1px solid #BAE6FD',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <Sparkles size={14} color="#0284C7" />
-                  <span style={{ fontSize: '11px', color: '#0369A1', lineHeight: 1.4 }}>
-                    <strong>PM Beta Access:</strong> Registered societies get instant access with automatic tower routing for zero-transit handovers in lift lobbies.
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <form onSubmit={handleAddSocietySubmit}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '3px' }}>
-                      Society / Condominium Name *
+                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                      Society / Apartment Name *
                     </label>
                     <input 
                       type="text"
                       required
-                      placeholder="e.g. Sobha City, DLF The Aralias, Pebble Bay"
+                      placeholder="e.g. ATS Greens Village, DLF Phase 5, Sobha City"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '8px 10px',
-                        borderRadius: 'var(--radius-xs)',
+                        padding: '9px 12px',
+                        borderRadius: '8px',
                         border: '1px solid var(--border-subtle)',
-                        fontSize: '12px',
-                        outline: 'none'
+                        fontSize: '13px',
+                        outline: 'none',
+                        boxSizing: 'border-box'
                       }}
                     />
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '3px' }}>
+                      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
                         City *
                       </label>
                       <select
@@ -471,164 +464,107 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
                         onChange={(e) => setCity(e.target.value)}
                         style={{
                           width: '100%',
-                          padding: '8px 10px',
-                          borderRadius: 'var(--radius-xs)',
+                          padding: '9px 12px',
+                          borderRadius: '8px',
                           border: '1px solid var(--border-subtle)',
-                          fontSize: '12px',
+                          fontSize: '13px',
                           outline: 'none',
-                          background: '#FFFFFF'
+                          background: '#FFFFFF',
+                          boxSizing: 'border-box'
                         }}
                       >
                         <option value="Gurugram">Gurugram</option>
                         <option value="Bengaluru">Bengaluru</option>
-                        <option value="Mumbai">Mumbai</option>
-                        <option value="Pune">Pune</option>
                         <option value="Noida">Noida</option>
                         <option value="Delhi">Delhi</option>
+                        <option value="Mumbai">Mumbai</option>
+                        <option value="Pune">Pune</option>
                         <option value="Hyderabad">Hyderabad</option>
                         <option value="Chennai">Chennai</option>
+                        <option value="Kolkata">Kolkata</option>
                       </select>
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '3px' }}>
-                        Locality / Sector
+                      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        Locality / Area
                       </label>
                       <input 
                         type="text"
-                        placeholder="e.g. Sector 108 / Whitefield"
+                        placeholder="e.g. Sector 93A, Whitefield"
                         value={locality}
                         onChange={(e) => setLocality(e.target.value)}
                         style={{
                           width: '100%',
-                          padding: '8px 10px',
-                          borderRadius: 'var(--radius-xs)',
+                          padding: '9px 12px',
+                          borderRadius: '8px',
                           border: '1px solid var(--border-subtle)',
-                          fontSize: '12px',
-                          outline: 'none'
+                          fontSize: '13px',
+                          outline: 'none',
+                          boxSizing: 'border-box'
                         }}
                       />
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '3px' }}>
-                        Towers Count
+                      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        Number of Towers / Wings
                       </label>
                       <input 
                         type="number"
                         min="1"
                         max="50"
+                        placeholder="e.g. 4"
                         value={towersCount}
                         onChange={(e) => setTowersCount(e.target.value)}
                         style={{
                           width: '100%',
-                          padding: '8px 10px',
-                          borderRadius: 'var(--radius-xs)',
+                          padding: '9px 12px',
+                          borderRadius: '8px',
                           border: '1px solid var(--border-subtle)',
-                          fontSize: '12px',
-                          outline: 'none'
+                          fontSize: '13px',
+                          outline: 'none',
+                          boxSizing: 'border-box'
                         }}
                       />
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '3px' }}>
-                        Approx. Flats
-                      </label>
-                      <input 
-                        type="number"
-                        min="10"
-                        max="10000"
-                        value={flatsCount}
-                        onChange={(e) => setFlatsCount(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '8px 10px',
-                          borderRadius: 'var(--radius-xs)',
-                          border: '1px solid var(--border-subtle)',
-                          fontSize: '12px',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '3px' }}>
+                      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
                         Pincode
                       </label>
                       <input 
                         type="text"
-                        placeholder="122001"
+                        placeholder="e.g. 201304"
                         value={pincode}
                         onChange={(e) => setPincode(e.target.value)}
                         style={{
                           width: '100%',
-                          padding: '8px 10px',
-                          borderRadius: 'var(--radius-xs)',
+                          padding: '9px 12px',
+                          borderRadius: '8px',
                           border: '1px solid var(--border-subtle)',
-                          fontSize: '12px',
-                          outline: 'none'
+                          fontSize: '13px',
+                          outline: 'none',
+                          boxSizing: 'border-box'
                         }}
                       />
                     </div>
                   </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '3px' }}>
-                      Your Role in this Society
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-                      {[
-                        { id: 'owner', label: 'Flat Owner' },
-                        { id: 'tenant', label: 'Resident Tenant' },
-                        { id: 'rwa', label: 'RWA / Admin' },
-                        { id: 'enthusiast', label: 'Volunteer' }
-                      ].map((r) => (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onClick={() => setUserRole(r.id as any)}
-                          style={{
-                            padding: '6px 4px',
-                            borderRadius: 'var(--radius-xs)',
-                            fontSize: '11px',
-                            fontWeight: userRole === r.id ? 600 : 400,
-                            border: userRole === r.id ? '1.5px solid var(--text-primary)' : '1px solid var(--border-hairline)',
-                            background: userRole === r.id ? '#FAFAF9' : '#FFFFFF',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {r.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '4px' }}>
-                    <input 
-                      type="checkbox"
-                      checked={shareWhatsApp}
-                      onChange={(e) => setShareWhatsApp(e.target.checked)}
-                      style={{ accentColor: '#1A1A1A' }}
-                    />
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                      I can share this beta with our tower/society WhatsApp group to seed listings
-                    </span>
-                  </label>
                 </div>
 
-                <div style={{ marginTop: '16px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                   <button
                     type="button"
                     onClick={() => setActiveTab('explore')}
                     style={{
-                      padding: '8px 14px',
-                      borderRadius: 'var(--radius-xs)',
+                      padding: '9px 16px',
+                      borderRadius: '8px',
                       background: 'none',
                       border: '1px solid var(--border-hairline)',
-                      fontSize: '12px',
+                      fontSize: '12.5px',
+                      color: 'var(--text-secondary)',
                       cursor: 'pointer'
                     }}
                   >
@@ -638,11 +574,11 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
                     type="submit"
                     disabled={!name.trim()}
                     style={{
-                      padding: '8px 16px',
-                      borderRadius: 'var(--radius-xs)',
-                      background: name.trim() ? 'var(--text-primary)' : '#9CA3AF',
+                      padding: '9px 18px',
+                      borderRadius: '8px',
+                      background: name.trim() ? 'var(--text-primary)' : '#D1D5DB',
                       color: '#FFFFFF',
-                      fontSize: '12px',
+                      fontSize: '12.5px',
                       fontWeight: 600,
                       border: 'none',
                       cursor: name.trim() ? 'pointer' : 'not-allowed',
@@ -651,8 +587,8 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
                       gap: '5px'
                     }}
                   >
-                    <PlusCircle size={13} />
-                    <span>Launch Beta Hub</span>
+                    <PlusCircle size={14} />
+                    <span>Add Society</span>
                   </button>
                 </div>
               </form>

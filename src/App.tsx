@@ -354,11 +354,12 @@ export function App() {
       id: req.id || `soc-${Date.now()}`,
       name: req.name,
       city: req.city,
+      area: req.locality,
       pincode: req.pincode,
-      activeListingsCount: 1,
-      residentCount: req.approxFlats * 3,
+      activeListingsCount: 0,
+      residentCount: 0,
       isLive: true,
-      towers: Array.from({ length: req.towersCount }, (_, i) => `Tower ${i + 1}`)
+      towers: Array.from({ length: req.towersCount || 4 }, (_, i) => `Tower ${i + 1}`)
     };
     setSocieties((prev) => [newSoc, ...prev]);
     handleSelectSociety(newSoc);
