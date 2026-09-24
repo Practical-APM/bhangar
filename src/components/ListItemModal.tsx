@@ -158,8 +158,12 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
       });
     }
 
+    const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? `listing_${crypto.randomUUID()}`
+      : `listing_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
     const newItem: ThriftItem = {
-      id: `item-${Date.now()}`,
+      id: uniqueId,
       articleNumber: randomArt,
       ikeaStyleName: `${title.split(' ')[0].toUpperCase()} / ${category}`,
       title: title.trim(),

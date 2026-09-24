@@ -97,6 +97,8 @@ export async function uploadImageToStorage(imageData: string | Blob): Promise<st
 // ITEMS API
 // ==============================================================================
 
+const LEGACY_DUMMY_IDS = new Set(['item-1', 'item-2', 'item-3', 'item-4', 'item-5', 'item-6', 'item-7', 'item-8', 'item-9', 'item-10']);
+
 export async function fetchItemsFromDB(societyId?: string): Promise<ThriftItem[]> {
   if (isSupabaseConfigured() && supabase) {
     try {
@@ -107,7 +109,7 @@ export async function fetchItemsFromDB(societyId?: string): Promise<ThriftItem[]
       const { data, error } = await query;
       if (!error && data) {
         return data
-          .filter((r: any) => !r.id?.startsWith('item-') && !r.title?.toLowerCase().includes('markus'))
+          .filter((r: any) => !LEGACY_DUMMY_IDS.has(r.id) && !r.is_seed && !r.title?.toLowerCase().includes('markus'))
           .map(mapRowToItem);
       }
     } catch (e) {
@@ -121,7 +123,7 @@ export async function fetchItemsFromDB(societyId?: string): Promise<ThriftItem[]
     if (local) {
       const parsed = JSON.parse(local);
       if (Array.isArray(parsed)) {
-        return parsed.filter((it: any) => !it.id?.startsWith('item-') && !it.title?.toLowerCase().includes('markus'));
+        return parsed.filter((it: any) => !LEGACY_DUMMY_IDS.has(it.id) && !it.is_seed && !it.title?.toLowerCase().includes('markus'));
       }
     }
   } catch {}
@@ -129,6 +131,18 @@ export async function fetchItemsFromDB(societyId?: string): Promise<ThriftItem[]
 }
 
 export async function createItemInDB(item: ThriftItem): Promise<ThriftItem> {
+  let dbItem = { ...item };
+
+  // Always ensure immediate localStorage persistence so the item survives page reloads
+  try {
+    const raw = localStorage.getItem('bhangar_items');
+    const existing: ThriftItem[] = raw ? JSON.parse(raw) : [];
+    const updated = [item, ...existing.filter(i => i.id !== item.id)];
+    localStorage.setItem('bhangar_items', JSON.stringify(updated));
+  } catch (e) {
+    console.warn('[LocalStorage] Error saving item locally:', e);
+  }
+
   // If Supabase is connected, upload any DataURLs to storage bucket first
   if (isSupabaseConfigured() && supabase) {
     try {
@@ -141,7 +155,7 @@ export async function createItemInDB(item: ThriftItem): Promise<ThriftItem> {
         })
       );
 
-      const dbItem = { ...item, images: uploadedImages };
+      dbItem = { ...item, images: uploadedImages };
 
       const { error } = await supabase.from('items').insert({
         id: dbItem.id,
@@ -171,11 +185,18 @@ export async function createItemInDB(item: ThriftItem): Promise<ThriftItem> {
         moving_out_date: dbItem.movingOutDate,
         status: dbItem.status,
         tags: dbItem.tags,
-        society_id: 'dlf-phase-5',
+        society_id: dbItem.seller?.society ? dbItem.seller.society.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'general',
         is_seed: false
       });
 
       if (!error) {
+        // Update local storage with any converted CDN image URLs
+        try {
+          const raw = localStorage.getItem('bhangar_items');
+          const existing: ThriftItem[] = raw ? JSON.parse(raw) : [];
+          const updated = existing.map(i => i.id === dbItem.id ? dbItem : i);
+          localStorage.setItem('bhangar_items', JSON.stringify(updated));
+        } catch {}
         return dbItem;
       }
       console.warn('[Supabase] Insert failed:', error.message);
@@ -184,7 +205,7 @@ export async function createItemInDB(item: ThriftItem): Promise<ThriftItem> {
     }
   }
 
-  return item;
+  return dbItem;
 }
 
 // ==============================================================================

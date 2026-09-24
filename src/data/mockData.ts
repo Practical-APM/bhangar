@@ -40,6 +40,7 @@ export interface ThriftItem {
   heldBy?: string;
   tags: string[];
   listedAgo: string;
+  is_seed?: boolean;
 }
 
 export interface SellerOffer {

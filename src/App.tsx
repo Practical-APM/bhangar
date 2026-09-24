@@ -47,6 +47,19 @@ const DUMMY_SOCIETY_IDS = new Set([
   'godrej-woodsman'
 ]);
 
+export const LEGACY_DUMMY_ITEM_IDS = new Set([
+  'item-1',
+  'item-2',
+  'item-3',
+  'item-4',
+  'item-5',
+  'item-6',
+  'item-7',
+  'item-8',
+  'item-9',
+  'item-10'
+]);
+
 function loadStorage<T>(key: string, fallback: T): T {
   try {
     const data = localStorage.getItem(key);
@@ -82,7 +95,8 @@ if (typeof window !== 'undefined') {
       const parsed = JSON.parse(existing);
       if (Array.isArray(parsed)) {
         const cleanItems = parsed.filter((it: any) => 
-          !it.id?.startsWith('item-') && 
+          !LEGACY_DUMMY_ITEM_IDS.has(it.id) && 
+          !it.is_seed &&
           !it.title?.toLowerCase().includes('markus') && 
           !it.title?.toLowerCase().includes('dell 34') &&
           !it.title?.toLowerCase().includes('green soul') &&
@@ -97,7 +111,7 @@ if (typeof window !== 'undefined') {
     if (existingOffers) {
       const parsedOffers = JSON.parse(existingOffers);
       if (Array.isArray(parsedOffers)) {
-        const cleanOffers = parsedOffers.filter((o: any) => !o.itemId?.startsWith('item-'));
+        const cleanOffers = parsedOffers.filter((o: any) => !LEGACY_DUMMY_ITEM_IDS.has(o.itemId));
         if (cleanOffers.length !== parsedOffers.length) {
           localStorage.setItem('bhangar_seller_offers', JSON.stringify(cleanOffers));
         }
@@ -153,7 +167,8 @@ export function App() {
     const loaded = loadStorage<ThriftItem[]>('bhangar_items', INITIAL_THRIFT_ITEMS);
     if (!Array.isArray(loaded)) return [];
     return loaded.filter((it) => 
-      !it.id?.startsWith('item-') && 
+      !LEGACY_DUMMY_ITEM_IDS.has(it.id) && 
+      !it.is_seed &&
       !it.title?.toLowerCase().includes('markus') && 
       !it.title?.toLowerCase().includes('dell 34')
     );
