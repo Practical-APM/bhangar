@@ -30,6 +30,7 @@ import {
 import {
   fetchItemsFromDB,
   createItemInDB,
+  deleteItemFromDB,
   fetchOffersFromDB,
   updateOfferStatusInDB,
   createCommentInDB,
@@ -371,8 +372,12 @@ export function App() {
     }
   };
 
-  // Items listed by the current user (matches user tower or posted by user)
-  const myItems = items.filter((it) => it.seller.tower === userTower);
+  // Items listed by the current user (matches user phone, name, or tower)
+  const myItems = items.filter((it) => {
+    if (userProfile.phone && it.seller.phone && it.seller.phone === userProfile.phone) return true;
+    if (userProfile.name && it.seller.name && it.seller.name.toLowerCase() === userProfile.name.toLowerCase()) return true;
+    return userTower && it.seller.tower === userTower;
+  });
   const pendingOffersCount = sellerOffers.filter((o) => o.status === 'pending').length;
 
   // Filtering logic (Feed shows items from all societies by default, with city and society filters)
@@ -527,6 +532,26 @@ export function App() {
     setItems((prev) =>
       prev.map((it) => (it.id === itemId ? { ...it, price: newPrice } : it))
     );
+  };
+
+  const handleDeleteItem = async (itemId: string) => {
+    setItems((prev) => prev.filter((it) => it.id !== itemId));
+    setSellerOffers((prev) => prev.filter((o) => o.itemId !== itemId));
+    if (activeDetailItem?.id === itemId) {
+      setActiveDetailItem(null);
+    }
+    await deleteItemFromDB(itemId);
+  };
+
+  const handleUpdateItemStatus = (itemId: string, status: 'available' | 'held' | 'sold') => {
+    setItems((prev) =>
+      prev.map((it) => (it.id === itemId ? { ...it, status } : it))
+    );
+    if (status === 'sold') {
+      setSellerOffers((prev) =>
+        prev.map((o) => (o.itemId === itemId ? { ...o, status: 'accepted' as const } : o))
+      );
+    }
   };
 
   const handleSaveProfile = (updated: UserProfile) => {
@@ -952,6 +977,7 @@ export function App() {
           onDeclineOffer={handleDeclineSellerOffer}
           onMarkItemSold={handleMarkItemSold}
           onMarkdownItem={handleMarkdownItem}
+          onDeleteItem={handleDeleteItem}
         />
       )}
 
@@ -974,6 +1000,8 @@ export function App() {
           comments={comments}
           onAddComment={handleAddComment}
           onClose={() => setActiveDetailItem(null)}
+          onDeleteItem={handleDeleteItem}
+          onUpdateItemStatus={handleUpdateItemStatus}
           onOpenOfferModal={(it) => {
             requireAuth(() => {
               setActiveDetailItem(null);

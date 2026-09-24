@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Video, ShieldCheck, ArrowRight, MessageSquare, Lock, Send } from 'lucide-react';
+import { X, Video, ShieldCheck, ArrowRight, MessageSquare, Lock, Send, Trash2, CheckCircle2 } from 'lucide-react';
 import { ThriftItem, ItemComment, UserProfile } from '../data/mockData';
 
 interface ItemDetailModalProps {
@@ -11,6 +11,8 @@ interface ItemDetailModalProps {
   onClose: () => void;
   onOpenOfferModal: (item: ThriftItem) => void;
   onOpenSellerOffers?: () => void;
+  onDeleteItem?: (itemId: string) => void;
+  onUpdateItemStatus?: (itemId: string, status: 'available' | 'held' | 'sold') => void;
 }
 
 export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
@@ -21,7 +23,9 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   onAddComment,
   onClose,
   onOpenOfferModal,
-  onOpenSellerOffers
+  onOpenSellerOffers,
+  onDeleteItem,
+  onUpdateItemStatus
 }) => {
   const [activeTab, setActiveTab] = useState<'specs' | 'discussion'>('specs');
   const [activeImgIndex, setActiveImgIndex] = useState(0);
@@ -30,7 +34,11 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   const itemComments = comments.filter((c) => c.itemId === item.id);
   const discountPercent = Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100);
   const savingsAmount = item.originalPrice - item.price;
-  const isSeller = userTower === item.seller.tower;
+  const isSeller = Boolean(
+    (userProfile?.phone && item.seller.phone && userProfile.phone === item.seller.phone) ||
+    (userProfile?.name && item.seller.name && userProfile.name.toLowerCase() === item.seller.name.toLowerCase()) ||
+    (userTower && item.seller.tower === userTower)
+  );
 
   const handlePostQuestion = (e: React.FormEvent) => {
     e.preventDefault();
@@ -445,28 +453,98 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         {/* Private Offer Action Bar */}
         <div style={{ borderTop: '1px solid var(--border-hairline)', paddingTop: '12px' }}>
           {isSeller ? (
-            <button
-              onClick={() => {
-                onClose();
-                if (onOpenSellerOffers) onOpenSellerOffers();
-              }}
-              style={{
-                width: '100%',
-                padding: '11px',
-                borderRadius: 'var(--radius-xs)',
-                background: 'var(--text-primary)',
-                color: '#FFFFFF',
-                fontSize: '13px',
-                fontWeight: 500,
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              <span>View Offers on This Item</span>
-              <ArrowRight size={14} />
-            </button>
+                justifyContent: 'space-between',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                background: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                fontSize: '12px'
+              }}>
+                <span style={{ color: '#475569', fontWeight: 500 }}>
+                  Your Listing Status: <strong style={{ color: item.status === 'sold' ? '#059669' : (item.status === 'held' ? '#D97706' : '#2563EB'), textTransform: 'capitalize' }}>{item.status}</strong>
+                </span>
+                {onUpdateItemStatus && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextStatus = item.status === 'sold' ? 'available' : 'sold';
+                      onUpdateItemStatus(item.id, nextStatus);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: item.status === 'sold' ? '#2563EB' : '#059669',
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: '2px 6px'
+                    }}
+                  >
+                    {item.status === 'sold' ? 'Mark Available' : 'Mark as Sold'}
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => {
+                    onClose();
+                    if (onOpenSellerOffers) onOpenSellerOffers();
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '11px',
+                    borderRadius: 'var(--radius-xs)',
+                    background: 'var(--text-primary)',
+                    color: '#FFFFFF',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    border: 'none'
+                  }}
+                >
+                  <span>View Offers</span>
+                  <ArrowRight size={14} />
+                </button>
+
+                {onDeleteItem && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm(`Are you sure you want to take down "${item.title}"? It will be removed from Bhangar immediately.`)) {
+                        onDeleteItem(item.id);
+                        onClose();
+                      }
+                    }}
+                    title="Take down listing permanently"
+                    style={{
+                      padding: '11px 14px',
+                      borderRadius: 'var(--radius-xs)',
+                      background: '#FEF2F2',
+                      color: '#DC2626',
+                      border: '1px solid #FECACA',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    <span>Take Down</span>
+                  </button>
+                )}
+              </div>
+            </div>
           ) : (
             <div>
               <button

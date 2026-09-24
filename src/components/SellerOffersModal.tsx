@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Check, ArrowRight, Clock, MessageSquare, Tag, AlertCircle } from 'lucide-react';
+import { X, Check, ArrowRight, Clock, MessageSquare, Tag, AlertCircle, Trash2 } from 'lucide-react';
 import { ThriftItem, SellerOffer, SocietyInfo } from '../data/mockData';
 
 interface SellerOffersModalProps {
@@ -13,6 +13,7 @@ interface SellerOffersModalProps {
   onDeclineOffer: (offerId: string) => void;
   onMarkItemSold: (itemId: string) => void;
   onMarkdownItem: (itemId: string, newPrice: number) => void;
+  onDeleteItem?: (itemId: string) => void;
 }
 
 export const SellerOffersModal: React.FC<SellerOffersModalProps> = ({
@@ -25,7 +26,8 @@ export const SellerOffersModal: React.FC<SellerOffersModalProps> = ({
   onCounterOffer,
   onDeclineOffer,
   onMarkItemSold,
-  onMarkdownItem
+  onMarkdownItem,
+  onDeleteItem
 }) => {
   const [activeTab, setActiveTab] = useState<'offers' | 'listings'>('offers');
   const [counteringOfferId, setCounteringOfferId] = useState<string | null>(null);
@@ -475,45 +477,74 @@ export const SellerOffersModal: React.FC<SellerOffersModalProps> = ({
                   </div>
 
                   {/* Actions */}
-                  {item.status !== 'sold' && (
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    {item.status !== 'sold' && (
+                      <>
+                        <button
+                          onClick={() => {
+                            const discounted = Math.round(item.price * 0.9);
+                            onMarkdownItem(item.id, discounted);
+                          }}
+                          title="Markdown price by 10% for quick sale"
+                          style={{
+                            padding: '5px 8px',
+                            borderRadius: 'var(--radius-xs)',
+                            border: '1px solid var(--border-hairline)',
+                            background: 'var(--bg-subtle)',
+                            fontSize: '11px',
+                            color: 'var(--text-primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Tag size={12} />
+                          <span>-10%</span>
+                        </button>
+
+                        <button
+                          onClick={() => onMarkItemSold(item.id)}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: 'var(--radius-xs)',
+                            background: 'var(--text-primary)',
+                            color: '#FFFFFF',
+                            fontSize: '11px',
+                            fontWeight: 500
+                          }}
+                        >
+                          Mark Sold
+                        </button>
+                      </>
+                    )}
+
+                    {onDeleteItem && (
                       <button
                         onClick={() => {
-                          const discounted = Math.round(item.price * 0.9);
-                          onMarkdownItem(item.id, discounted);
+                          if (window.confirm(`Are you sure you want to take down "${item.title}"? This listing will be removed from Bhangar immediately.`)) {
+                            onDeleteItem(item.id);
+                          }
                         }}
-                        title="Markdown price by 10% for quick sale"
+                        title="Take down listing"
                         style={{
                           padding: '5px 8px',
                           borderRadius: 'var(--radius-xs)',
-                          border: '1px solid var(--border-hairline)',
-                          background: 'var(--bg-subtle)',
+                          border: '1px solid #FECACA',
+                          background: '#FEF2F2',
+                          color: '#DC2626',
                           fontSize: '11px',
-                          color: 'var(--text-primary)',
+                          fontWeight: 500,
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '4px'
+                          gap: '4px',
+                          cursor: 'pointer'
                         }}
                       >
-                        <Tag size={12} />
-                        <span>-10%</span>
+                        <Trash2 size={12} />
+                        <span>Take Down</span>
                       </button>
-
-                      <button
-                        onClick={() => onMarkItemSold(item.id)}
-                        style={{
-                          padding: '5px 10px',
-                          borderRadius: 'var(--radius-xs)',
-                          background: 'var(--text-primary)',
-                          color: '#FFFFFF',
-                          fontSize: '11px',
-                          fontWeight: 500
-                        }}
-                      >
-                        Mark Sold
-                      </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               ))
             ) : (

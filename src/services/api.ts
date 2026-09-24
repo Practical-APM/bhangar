@@ -208,6 +208,43 @@ export async function createItemInDB(item: ThriftItem): Promise<ThriftItem> {
   return dbItem;
 }
 
+export async function deleteItemFromDB(itemId: string): Promise<boolean> {
+  // 1. Remove from LocalStorage immediately
+  try {
+    const raw = localStorage.getItem('bhangar_items');
+    if (raw) {
+      const existing: ThriftItem[] = JSON.parse(raw);
+      const updated = existing.filter(i => i.id !== itemId);
+      localStorage.setItem('bhangar_items', JSON.stringify(updated));
+    }
+    const rawOffers = localStorage.getItem('bhangar_seller_offers');
+    if (rawOffers) {
+      const existingOffers: SellerOffer[] = JSON.parse(rawOffers);
+      const updatedOffers = existingOffers.filter(o => o.itemId !== itemId);
+      localStorage.setItem('bhangar_seller_offers', JSON.stringify(updatedOffers));
+    }
+  } catch (e) {
+    console.warn('[LocalStorage] Error removing item from storage:', e);
+  }
+
+  // 2. If Supabase is connected, delete from PostgreSQL items table (cascade deletes offers and comments)
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { error } = await supabase.from('items').delete().eq('id', itemId);
+      if (error) {
+        console.warn('[Supabase] Failed to delete item:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.warn('[Supabase] Exception deleting item:', e);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // ==============================================================================
 // OFFERS API
 // ==============================================================================
