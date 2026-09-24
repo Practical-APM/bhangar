@@ -109,26 +109,50 @@ ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.offers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+-- ==============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES (Idempotent - safe to re-run multiple times)
+-- ==============================================================================
 
--- Allow public read access to all users
+-- Societies Policies
+DROP POLICY IF EXISTS "Public Read Societies" ON public.societies;
+DROP POLICY IF EXISTS "Public Insert Societies" ON public.societies;
+DROP POLICY IF EXISTS "Public Update Societies" ON public.societies;
 CREATE POLICY "Public Read Societies" ON public.societies FOR SELECT USING (true);
 CREATE POLICY "Public Insert Societies" ON public.societies FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Update Societies" ON public.societies FOR UPDATE USING (true);
 
+-- Items Policies
+DROP POLICY IF EXISTS "Public Read Items" ON public.items;
+DROP POLICY IF EXISTS "Public Insert Items" ON public.items;
+DROP POLICY IF EXISTS "Public Update Items" ON public.items;
+DROP POLICY IF EXISTS "Public Delete Items" ON public.items;
 CREATE POLICY "Public Read Items" ON public.items FOR SELECT USING (true);
 CREATE POLICY "Public Insert Items" ON public.items FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Update Items" ON public.items FOR UPDATE USING (true);
 CREATE POLICY "Public Delete Items" ON public.items FOR DELETE USING (true);
 
+-- Offers Policies
+DROP POLICY IF EXISTS "Public Read Offers" ON public.offers;
+DROP POLICY IF EXISTS "Public Insert Offers" ON public.offers;
+DROP POLICY IF EXISTS "Public Update Offers" ON public.offers;
+DROP POLICY IF EXISTS "Public Delete Offers" ON public.offers;
 CREATE POLICY "Public Read Offers" ON public.offers FOR SELECT USING (true);
 CREATE POLICY "Public Insert Offers" ON public.offers FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Update Offers" ON public.offers FOR UPDATE USING (true);
 CREATE POLICY "Public Delete Offers" ON public.offers FOR DELETE USING (true);
 
+-- Comments Policies
+DROP POLICY IF EXISTS "Public Read Comments" ON public.comments;
+DROP POLICY IF EXISTS "Public Insert Comments" ON public.comments;
+DROP POLICY IF EXISTS "Public Delete Comments" ON public.comments;
 CREATE POLICY "Public Read Comments" ON public.comments FOR SELECT USING (true);
 CREATE POLICY "Public Insert Comments" ON public.comments FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Delete Comments" ON public.comments FOR DELETE USING (true);
 
+-- Profiles Policies
+DROP POLICY IF EXISTS "Public Read Profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Public Insert Profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Public Update Profiles" ON public.profiles;
 CREATE POLICY "Public Read Profiles" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Public Insert Profiles" ON public.profiles FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Update Profiles" ON public.profiles FOR UPDATE USING (true);
@@ -141,7 +165,9 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('listing-images', 'listing-images', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Storage bucket access policies
+DROP POLICY IF EXISTS "Public Access Listing Images" ON storage.objects;
+DROP POLICY IF EXISTS "Public Upload Listing Images" ON storage.objects;
+
 CREATE POLICY "Public Access Listing Images" 
 ON storage.objects FOR SELECT 
 USING (bucket_id = 'listing-images');
@@ -151,11 +177,43 @@ ON storage.objects FOR INSERT
 WITH CHECK (bucket_id = 'listing-images');
 
 -- ==============================================================================
--- REALTIME SUBSCRIPTIONS
+-- REALTIME SUBSCRIPTIONS (Safe re-run)
 -- ==============================================================================
--- Enable Realtime for live cross-browser updates
-ALTER PUBLICATION supabase_realtime ADD TABLE public.items;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.offers;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.societies;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'items'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.items;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'offers'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.offers;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'comments'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'profiles'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'societies'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.societies;
+  END IF;
+END $$;
