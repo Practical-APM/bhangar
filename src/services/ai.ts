@@ -1,14 +1,23 @@
 import { AIDetectionResult, analyzeItemWithAI } from '../data/mockData';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-// gemini-2.0-flash is Google's newest, highest-speed, lowest-token consumption model
-const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash';
+// gemini-1.5-flash is Google's active, stable multimodal Flash model on v1beta
+const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash';
+
+// Fallback candidate models in case a model ID is retired or unavailable
+export const GEMINI_CANDIDATE_MODELS = Array.from(new Set([
+  GEMINI_MODEL,
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-latest',
+  'gemini-2.0-flash-exp',
+  'gemini-1.5-pro'
+]));
 
 export interface AIUsageRecord {
   id: string;
   timestamp: string;
   title: string;
-  engine: 'gemini-2.0-flash' | 'local-catalog';
+  engine: string;
   type: 'text' | 'multimodal';
   promptTokens: number;
   completionTokens: number;
@@ -45,7 +54,7 @@ export function getAIUsageHistory(): AIUsageRecord[] {
 export function getAIResourceStats() {
   const history = getAIUsageHistory();
   const totalCalls = history.length;
-  const geminiCalls = history.filter(h => h.engine === 'gemini-2.0-flash' && h.status === 'success').length;
+  const geminiCalls = history.filter(h => h.engine !== 'local-catalog' && h.status === 'success').length;
   const localCalls = history.filter(h => h.engine === 'local-catalog' || h.status === 'fallback').length;
   const errorCalls = history.filter(h => h.status === 'error').length;
   const multimodalCalls = history.filter(h => h.type === 'multimodal').length;
@@ -106,26 +115,47 @@ export async function testGeminiConnection(): Promise<{ success: boolean; latenc
     };
   }
 
-  try {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: 'Healthcheck ping. Respond with: {"status": "ok"}' }] }],
-        generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 20 }
-      })
-    });
-    const latency = Date.now() - startTime;
-    if (!response.ok) {
-      return { success: false, latencyMs: latency, message: `API responded with HTTP ${response.status}: ${response.statusText}` };
+  let lastErrorDetail = '';
+  for (const model of GEMINI_CANDIDATE_MODELS) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: 'Healthcheck ping. Respond with: {"status": "ok"}' }] }],
+          generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 20 }
+        })
+      });
+      const latency = Date.now() - startTime;
+      if (response.ok) {
+        const data = await response.json();
+        const tokens = data.usageMetadata?.totalTokenCount || 10;
+        return { success: true, latencyMs: latency, message: `Connected to ${model} successfully`, tokens };
+      }
+
+      // Read detailed error from Google
+      const errData = await response.json().catch(() => null);
+      lastErrorDetail = errData?.error?.message || `HTTP ${response.status} (${response.statusText})`;
+
+      // If it's a 404 (model ID not found), try next model in candidate list
+      if (response.status === 404) {
+        console.warn(`[Gemini AI] Model ${model} returned 404. Trying next candidate model...`);
+        continue;
+      } else {
+        // If 400, 401, 403, 429, return immediately
+        return { success: false, latencyMs: latency, message: `Google API: ${lastErrorDetail}` };
+      }
+    } catch (err: any) {
+      lastErrorDetail = err.message || 'Network error';
     }
-    const data = await response.json();
-    const tokens = data.usageMetadata?.totalTokenCount || 10;
-    return { success: true, latencyMs: latency, message: `Connected to ${GEMINI_MODEL} successfully`, tokens };
-  } catch (err: any) {
-    return { success: false, latencyMs: Date.now() - startTime, message: err.message || 'Network error' };
   }
+
+  return {
+    success: false,
+    latencyMs: Date.now() - startTime,
+    message: `All models returned errors. Last: ${lastErrorDetail}`
+  };
 }
 
 export const isGeminiConfigured = (): boolean => {
@@ -201,37 +231,59 @@ Output ONLY a JSON object with this exact structure:
       }
     }
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+    let response: Response | null = null;
+    let usedModel = GEMINI_MODEL;
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [
-            {
-              text: 'You are an expert valuation and logistics AI for Bhangar.Space, a residential marketplace where moving tenants liquidate apartment furniture, monitors, and appliances in India. Respond strictly with a valid JSON object matching the requested schema.'
+    for (const model of GEMINI_CANDIDATE_MODELS) {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [
+                {
+                  text: 'You are an expert valuation and logistics AI for Bhangar.Space, a residential marketplace where moving tenants liquidate apartment furniture, monitors, and appliances in India. Respond strictly with a valid JSON object matching the requested schema.'
+                }
+              ]
+            },
+            contents: [
+              {
+                role: 'user',
+                parts
+              }
+            ],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              temperature: 0.2,
+              maxOutputTokens: 1024
             }
-          ]
-        },
-        contents: [
-          {
-            role: 'user',
-            parts
-          }
-        ],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.2,
-          maxOutputTokens: 1024
-        }
-      })
-    });
+          })
+        });
 
-    if (!response.ok) {
-      console.warn(`[Gemini AI] API call returned status ${response.status}. Falling back to local engine.`);
+        if (res.ok) {
+          response = res;
+          usedModel = model;
+          break;
+        }
+
+        if (res.status === 404) {
+          console.warn(`[Gemini AI] Model ${model} returned 404. Trying next model...`);
+          continue;
+        } else {
+          response = res;
+          break;
+        }
+      } catch (e) {
+        console.warn(`[Gemini AI] Request to ${model} failed:`, e);
+      }
+    }
+
+    if (!response || !response.ok) {
+      console.warn(`[Gemini AI] API call failed (${response ? response.status : 'network error'}). Falling back to local engine.`);
       const localResult = analyzeItemWithAI(userTitle, presetKey);
       logAIUsage({
         id: `ai-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
@@ -274,7 +326,7 @@ Output ONLY a JSON object with this exact structure:
       id: `ai-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       timestamp: new Date().toISOString(),
       title: userTitle,
-      engine: 'gemini-2.0-flash',
+      engine: usedModel,
       type: isMultimodal ? 'multimodal' : 'text',
       promptTokens,
       completionTokens,
