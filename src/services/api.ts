@@ -3,16 +3,43 @@ import { ThriftItem, SellerOffer, ItemComment, INITIAL_THRIFT_ITEMS, INITIAL_SEL
 
 // Map database row to ThriftItem
 function mapRowToItem(row: any): ThriftItem {
+  let sellerObj = row.seller;
+  if (typeof sellerObj === 'string') {
+    try {
+      sellerObj = JSON.parse(sellerObj);
+    } catch {
+      sellerObj = {};
+    }
+  }
+  sellerObj = (typeof sellerObj === 'object' && sellerObj !== null) ? sellerObj : {};
+
+  const seller = {
+    name: sellerObj.name || 'Resident Neighbor',
+    alias: sellerObj.alias || sellerObj.name || 'Neighbor',
+    tower: sellerObj.tower || row.tower || 'Tower 1',
+    phone: sellerObj.phone || '',
+    society: sellerObj.society || row.society_name || 'All Societies',
+    city: sellerObj.city || row.city || 'All Cities',
+    verifiedResident: Boolean(sellerObj.verifiedResident ?? true),
+    rating: typeof sellerObj.rating === 'number' ? sellerObj.rating : 5.0,
+    dealsCompleted: typeof sellerObj.dealsCompleted === 'number' ? sellerObj.dealsCompleted : 0,
+    responseTime: sellerObj.responseTime || '< 15 mins'
+  };
+
+  const images = Array.isArray(row.images) && row.images.length > 0
+    ? row.images
+    : (typeof row.images === 'string' && row.images ? [row.images] : ['/images/chair.jpg']);
+
   return {
     id: row.id,
     articleNumber: row.article_number || '804.249.12',
     ikeaStyleName: row.ikea_style_name || row.title,
-    title: row.title,
-    category: row.category,
-    roomType: row.room_type || 'wfh',
-    price: row.price,
-    originalPrice: row.original_price || row.price * 2,
-    bottomLinePrice: row.bottom_line_price || Math.round(row.price * 0.85),
+    title: row.title || 'Untitled Listing',
+    category: row.category || 'furniture',
+    roomType: row.room_type || 'living',
+    price: typeof row.price === 'number' ? row.price : 0,
+    originalPrice: typeof row.original_price === 'number' ? row.original_price : (row.price ? row.price * 2 : 0),
+    bottomLinePrice: row.bottom_line_price || Math.round((row.price || 0) * 0.85),
     condition: row.condition || 'gently_used',
     conditionLabel: row.condition_label || 'Verified Resident Listing',
     dimensions: row.dimensions || 'Standard',
@@ -23,21 +50,11 @@ function mapRowToItem(row: any): ThriftItem {
     sellerQuote: row.seller_quote,
     aspectRatio: (row.aspect_ratio as any) || '3/4',
     savesCount: row.saves_count || 0,
-    images: Array.isArray(row.images) && row.images.length > 0 ? row.images : ['/images/chair.jpg'],
+    images,
     hasVideoProof: Boolean(row.has_video_proof),
     videoProofNote: row.video_proof_note,
-    seller: row.seller || {
-      name: 'Resident Neighbor',
-      alias: 'Neighbor',
-      tower: 'Tower 4',
-      society: 'DLF Phase 5',
-      city: 'Gurugram',
-      verifiedResident: true,
-      rating: 5.0,
-      dealsCompleted: 1,
-      responseTime: '< 15 mins'
-    },
-    locationNote: `${row.seller?.tower || 'Tower 4'} · Elevator handover`,
+    seller,
+    locationNote: `${seller.tower} · Elevator handover`,
     isMovingOut: Boolean(row.is_moving_out),
     movingOutDate: row.moving_out_date,
     status: row.status || 'available',
@@ -113,22 +130,32 @@ export async function fetchItemsFromDB(societyId?: string): Promise<ThriftItem[]
     try {
       let query = supabase.from('items')
         .select('*')
-        .neq('status', 'deleted')
-        .order('created_at', { ascending: false });
+        .neq('status', 'deleted');
       if (societyId) {
         query = query.eq('society_id', societyId);
       }
-      const { data, error } = await query;
+
+      // Try ordered by created_at, fallback to unordered if ordering column fails
+      let { data, error } = await query.order('created_at', { ascending: false });
+      if (error) {
+        console.warn('[Supabase] Fetch with order failed, retrying without order:', error.message);
+        const fallbackRes = await query;
+        data = fallbackRes.data;
+        error = fallbackRes.error;
+      }
+
       if (!error && data) {
         return data
           .filter((r: any) => 
             !LEGACY_DUMMY_IDS.has(r.id) && 
             !localDeletedIds.has(r.id) &&
             !r.is_seed && 
-            r.status !== 'deleted' &&
-            !r.title?.toLowerCase().includes('markus')
+            r.status !== 'deleted'
           )
           .map(mapRowToItem);
+      }
+      if (error) {
+        console.warn('[Supabase] Failed to fetch items:', error.message);
       }
     } catch (e) {
       console.warn('[Supabase] Failed to fetch items, using local fallback:', e);
@@ -145,8 +172,7 @@ export async function fetchItemsFromDB(societyId?: string): Promise<ThriftItem[]
           !LEGACY_DUMMY_IDS.has(it.id) && 
           !localDeletedIds.has(it.id) &&
           !it.is_seed && 
-          it.status !== 'deleted' &&
-          !it.title?.toLowerCase().includes('markus')
+          it.status !== 'deleted'
         );
       }
     }

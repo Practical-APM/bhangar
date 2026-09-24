@@ -97,11 +97,7 @@ if (typeof window !== 'undefined') {
       if (Array.isArray(parsed)) {
         const cleanItems = parsed.filter((it: any) => 
           !LEGACY_DUMMY_ITEM_IDS.has(it.id) && 
-          !it.is_seed &&
-          !it.title?.toLowerCase().includes('markus') && 
-          !it.title?.toLowerCase().includes('dell 34') &&
-          !it.title?.toLowerCase().includes('green soul') &&
-          !it.title?.toLowerCase().includes('coway')
+          !it.is_seed
         );
         if (cleanItems.length !== parsed.length) {
           localStorage.setItem('bhangar_items', JSON.stringify(cleanItems));
@@ -173,9 +169,7 @@ export function App() {
       !LEGACY_DUMMY_ITEM_IDS.has(it.id) && 
       !deletedSet.has(it.id) &&
       !it.is_seed &&
-      it.status !== 'deleted' &&
-      !it.title?.toLowerCase().includes('markus') && 
-      !it.title?.toLowerCase().includes('dell 34')
+      it.status !== 'deleted'
     );
   });
   const [comments, setComments] = useState<ItemComment[]>(() => 
@@ -391,21 +385,25 @@ export function App() {
 
     // Scope / Society filter
     if (selectedScopeFilter === 'my_society') {
-      if (item.seller.society !== currentSociety.name) return false;
+      const itemSoc = (item.seller?.society || '').trim().toLowerCase();
+      const currentSoc = (currentSociety.name || '').trim().toLowerCase();
+      if (itemSoc !== currentSoc) return false;
     }
 
     // City filter
     if (selectedCityFilter !== 'all') {
-      if (item.seller.city.toLowerCase() !== selectedCityFilter.toLowerCase()) return false;
+      const itemCity = (item.seller?.city || '').trim().toLowerCase();
+      const targetCity = (selectedCityFilter || '').trim().toLowerCase();
+      if (itemCity !== targetCity) return false;
     }
 
     // Search query match
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchTitle = item.title.toLowerCase().includes(q);
-      const matchDesc = item.description.toLowerCase().includes(q);
-      const matchTag = item.tags.some(t => t.toLowerCase().includes(q));
-      const matchLoc = item.seller.society.toLowerCase().includes(q) || item.seller.city.toLowerCase().includes(q);
+      const matchTitle = (item.title || '').toLowerCase().includes(q);
+      const matchDesc = (item.description || '').toLowerCase().includes(q);
+      const matchTag = Array.isArray(item.tags) && item.tags.some(t => t.toLowerCase().includes(q));
+      const matchLoc = (item.seller?.society || '').toLowerCase().includes(q) || (item.seller?.city || '').toLowerCase().includes(q);
       if (!matchTitle && !matchDesc && !matchTag && !matchLoc) return false;
     }
 
@@ -426,7 +424,7 @@ export function App() {
 
     // Tower filter
     if (selectedTowerFilter !== 'all') {
-      if (item.seller.tower !== selectedTowerFilter) return false;
+      if (item.seller?.tower !== selectedTowerFilter) return false;
     }
 
     return true;
@@ -738,9 +736,9 @@ export function App() {
         }}
         selectedCityFilter={selectedCityFilter}
         onSelectCityFilter={setSelectedCityFilter}
-        availableCities={Array.from(new Set(items.map(it => it.seller.city).filter(Boolean)))}
+        availableCities={Array.from(new Set(items.map(it => it.seller?.city).filter(Boolean)))}
         totalAllItemsCount={items.length}
-        mySocietyItemsCount={items.filter(it => it.seller.society === currentSociety.name).length}
+        mySocietyItemsCount={items.filter(it => (it.seller?.society || '').toLowerCase() === (currentSociety.name || '').toLowerCase()).length}
       />
 
       {/* Main Masonry Area */}

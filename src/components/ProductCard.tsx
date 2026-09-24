@@ -116,7 +116,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* WhatsApp Share Button */}
         <a
           href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-            `Check this out on Bhangar.Space:\n\n🛍️ ${item.title}\n💰 ₹${item.price.toLocaleString('en-IN')} (was ₹${item.originalPrice.toLocaleString('en-IN')})\n📍 ${item.seller.society.split('(')[0].trim()}\n\nhttps://bhangar.space`
+            `Check this out on Bhangar.Space:\n\n🛍️ ${item.title}\n💰 ₹${item.price.toLocaleString('en-IN')} (was ₹${item.originalPrice.toLocaleString('en-IN')})\n📍 ${(item.seller?.society || 'Society').split('(')[0].trim()}\n\nhttps://bhangar.space`
           )}`}
           target="_blank"
           rel="noreferrer"
@@ -210,10 +210,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             fontWeight: 500,
             border: `1px solid ${isSameTower ? '#A7F3D0' : 'var(--border-hairline)'}`,
           }}>
-            <span style={{ fontWeight: 600 }}>{item.seller.society.split('(')[0].trim()}</span>
-            <span style={{ color: 'var(--text-muted)' }}>· {item.seller.tower}</span>
+            <span style={{ fontWeight: 600 }}>{(item.seller?.society || 'Society').split('(')[0].trim()}</span>
+            <span style={{ color: 'var(--text-muted)' }}>· {item.seller?.tower || 'Tower'}</span>
           </span>
-          {item.seller.city && (
+          {item.seller?.city && (
             <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500 }}>
               {item.seller.city}
             </span>
