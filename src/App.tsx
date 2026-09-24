@@ -13,6 +13,7 @@ import { WishlistModal } from './components/WishlistModal';
 import { SocietyModal } from './components/SocietyModal';
 import { 
   METRO_SOCIETIES, 
+  DEFAULT_SOCIETY,
   INITIAL_THRIFT_ITEMS, 
   INITIAL_SELLER_OFFERS,
   INITIAL_USER_PROFILE,
@@ -34,6 +35,15 @@ import {
 } from './services/api';
 import { supabase, isSupabaseConfigured, signOutFromSupabase } from './lib/supabase';
 
+const DUMMY_SOCIETY_IDS = new Set([
+  'dlf-phase-5',
+  'prestige-shantiniketan',
+  'amanora-park-town',
+  'ats-greens',
+  'hiranandani-estate',
+  'my-home-bhooja',
+  'godrej-woodsman'
+]);
 
 function loadStorage<T>(key: string, fallback: T): T {
   try {
@@ -91,16 +101,39 @@ if (typeof window !== 'undefined') {
         }
       }
     }
+    // Purge dummy societies from localStorage
+    const existingSocieties = localStorage.getItem('bhangar_societies');
+    if (existingSocieties) {
+      const parsedSocieties = JSON.parse(existingSocieties);
+      if (Array.isArray(parsedSocieties)) {
+        const cleanSocieties = parsedSocieties.filter((s: any) => !DUMMY_SOCIETY_IDS.has(s.id));
+        if (cleanSocieties.length !== parsedSocieties.length) {
+          localStorage.setItem('bhangar_societies', JSON.stringify(cleanSocieties));
+        }
+      }
+    }
+    const existingCurrentSoc = localStorage.getItem('bhangar_society');
+    if (existingCurrentSoc) {
+      const parsedCurrent = JSON.parse(existingCurrentSoc);
+      if (parsedCurrent && DUMMY_SOCIETY_IDS.has(parsedCurrent.id)) {
+        localStorage.removeItem('bhangar_society');
+      }
+    }
   } catch {}
 }
 
 export function App() {
-  const [societies, setSocieties] = useState<SocietyInfo[]>(() => 
-    loadStorage('bhangar_societies', METRO_SOCIETIES)
-  );
-  const [currentSociety, setCurrentSociety] = useState<SocietyInfo>(() => 
-    loadStorage('bhangar_society', METRO_SOCIETIES[0])
-  );
+  const [societies, setSocieties] = useState<SocietyInfo[]>(() => {
+    const loaded = loadStorage<SocietyInfo[]>('bhangar_societies', METRO_SOCIETIES);
+    if (!Array.isArray(loaded)) return [];
+    return loaded.filter((s) => !DUMMY_SOCIETY_IDS.has(s.id));
+  });
+  const [currentSociety, setCurrentSociety] = useState<SocietyInfo>(() => {
+    const saved = loadStorage<SocietyInfo | null>('bhangar_society', null);
+    if (saved && saved.id && !DUMMY_SOCIETY_IDS.has(saved.id)) return saved;
+    const initialSocieties = loadStorage<SocietyInfo[]>('bhangar_societies', []).filter((s) => !DUMMY_SOCIETY_IDS.has(s.id));
+    return initialSocieties[0] || DEFAULT_SOCIETY;
+  });
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
     const saved = loadStorage<UserProfile>('bhangar_user_profile', INITIAL_USER_PROFILE);
     if (!saved || saved.email === 'sakar.m@gmail.com' || saved.name === 'Sakar M.' || !saved.isLoggedIn) {

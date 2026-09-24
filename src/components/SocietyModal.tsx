@@ -25,7 +25,6 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
   const [city, setCity] = useState('Gurugram');
   const [locality, setLocality] = useState('');
   const [pincode, setPincode] = useState('');
-  const [towersCount, setTowersCount] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submittedSociety, setSubmittedSociety] = useState<SocietyInfo | null>(null);
 
@@ -40,15 +39,14 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
     e.preventDefault();
     if (!name.trim()) return;
 
-    const count = parseInt(towersCount, 10) || 4;
     const newRequest: SocietyRequest = {
       id: `soc-${Date.now()}`,
       name: name.trim(),
       city: city.trim(),
       locality: locality.trim() || undefined,
       pincode: pincode.trim() || undefined,
-      towersCount: count,
-      approxFlats: count * 100,
+      towersCount: 0,
+      approxFlats: 0,
       applicantRole: 'resident',
       requestedAt: 'Just now'
     };
@@ -64,7 +62,7 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
       activeListingsCount: 0,
       residentCount: 0,
       isLive: true,
-      towers: Array.from({ length: count }, (_, i) => `Tower ${i + 1}`)
+      towers: []
     };
     
     setSubmittedSociety(createdSoc);
@@ -222,7 +220,7 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
               paddingRight: '2px'
             }}>
               {filteredSocieties.map((soc) => {
-                const isSelected = soc.id === currentSociety.id;
+                const isSelected = Boolean(currentSociety?.id && soc.id === currentSociety.id);
                 return (
                   <div
                     key={soc.id}
@@ -303,25 +301,50 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
               {filteredSocieties.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)' }}>
                   <Building2 size={24} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
-                  <p style={{ fontSize: '13px', margin: '0 0 8px 0' }}>No societies found matching "{searchQuery}"</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('request');
-                      setName(searchQuery);
-                    }}
-                    style={{
-                      fontSize: '12px',
-                      color: 'var(--text-primary)',
-                      fontWeight: 600,
-                      background: 'none',
-                      border: 'none',
-                      textDecoration: 'underline',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    + Add "{searchQuery}" as a new society
-                  </button>
+                  {searchQuery ? (
+                    <>
+                      <p style={{ fontSize: '13px', margin: '0 0 8px 0' }}>No societies found matching "{searchQuery}"</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('request');
+                          setName(searchQuery);
+                        }}
+                        style={{
+                          fontSize: '12px',
+                          color: 'var(--text-primary)',
+                          fontWeight: 600,
+                          background: 'none',
+                          border: 'none',
+                          textDecoration: 'underline',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        + Add "{searchQuery}" as a new society
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p style={{ fontSize: '13px', margin: '0 0 4px 0', fontWeight: 600, color: 'var(--text-primary)' }}>No societies added yet</p>
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 12px 0' }}>Be the first to add your society and connect with neighbors.</p>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('request')}
+                        style={{
+                          fontSize: '12px',
+                          color: '#FFFFFF',
+                          fontWeight: 600,
+                          background: 'var(--text-primary)',
+                          border: 'none',
+                          borderRadius: 'var(--radius-full)',
+                          padding: '7px 16px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        + Add My Society
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -487,57 +510,11 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
 
                     <div>
                       <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                        Locality / Area
-                      </label>
-                      <input 
-                        type="text"
-                        placeholder="e.g. Sector 93A, Whitefield"
-                        value={locality}
-                        onChange={(e) => setLocality(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '9px 12px',
-                          borderRadius: '8px',
-                          border: '1px solid var(--border-subtle)',
-                          fontSize: '13px',
-                          outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                        Number of Towers / Wings
-                      </label>
-                      <input 
-                        type="number"
-                        min="1"
-                        max="50"
-                        placeholder="e.g. 4"
-                        value={towersCount}
-                        onChange={(e) => setTowersCount(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '9px 12px',
-                          borderRadius: '8px',
-                          border: '1px solid var(--border-subtle)',
-                          fontSize: '13px',
-                          outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
                         Pincode
                       </label>
                       <input 
                         type="text"
-                        placeholder="e.g. 201304"
+                        placeholder="e.g. 122002"
                         value={pincode}
                         onChange={(e) => setPincode(e.target.value)}
                         style={{
@@ -551,6 +528,27 @@ export const SocietyModal: React.FC<SocietyModalProps> = ({
                         }}
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                      Locality / Area
+                    </label>
+                    <input 
+                      type="text"
+                      placeholder="e.g. Sector 93A, Golf Course Road, Whitefield"
+                      value={locality}
+                      onChange={(e) => setLocality(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-subtle)',
+                        fontSize: '13px',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
                   </div>
                 </div>
 

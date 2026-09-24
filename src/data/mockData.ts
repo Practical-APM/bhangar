@@ -295,99 +295,18 @@ export interface SocietyRequest {
 
 export const INITIAL_SELLER_OFFERS: SellerOffer[] = [];
 
-export const METRO_SOCIETIES: SocietyInfo[] = [
-  {
-    id: 'dlf-phase-5',
-    name: 'DLF Phase 5 (The Crest & Park Place)',
-    city: 'Gurugram',
-    area: 'Golf Course Road / Phase 5',
-    lat: 28.4595,
-    lng: 77.0945,
-    pincode: '122002',
-    activeListingsCount: 0,
-    residentCount: 1420,
-    isLive: true,
-    towers: ['Tower 1', 'Tower 2', 'Tower 3', 'Tower 4', 'Tower 5', 'Tower 6', 'Tower 7']
-  },
-  {
-    id: 'prestige-shantiniketan',
-    name: 'Prestige Shantiniketan',
-    city: 'Bengaluru',
-    area: 'Whitefield / ITPL',
-    lat: 12.9892,
-    lng: 77.7281,
-    pincode: '560048',
-    activeListingsCount: 0,
-    residentCount: 3100,
-    isLive: true,
-    towers: ['Tower 01', 'Tower 04', 'Tower 07', 'Tower 11', 'Tower 15']
-  },
-  {
-    id: 'amanora-park-town',
-    name: 'Amanora Park Town',
-    city: 'Pune',
-    area: 'Hadapsar / Magarpatta',
-    lat: 18.5173,
-    lng: 73.9352,
-    pincode: '411028',
-    activeListingsCount: 0,
-    residentCount: 2450,
-    isLive: true,
-    towers: ['Sector R1', 'Sector R2', 'Future Towers A', 'Future Towers B']
-  },
-  {
-    id: 'ats-greens',
-    name: 'ATS Greens Village',
-    city: 'Noida',
-    area: 'Sector 93A / Expressway',
-    lat: 28.5132,
-    lng: 77.3828,
-    pincode: '201304',
-    activeListingsCount: 0,
-    residentCount: 1180,
-    isLive: true,
-    towers: ['Tower 2', 'Tower 5', 'Tower 8', 'Tower 10']
-  },
-  {
-    id: 'hiranandani-estate',
-    name: 'Hiranandani Estate',
-    city: 'Mumbai',
-    area: 'Thane West / Ghodbunder Road',
-    lat: 19.2562,
-    lng: 72.9734,
-    pincode: '400607',
-    activeListingsCount: 0,
-    residentCount: 2900,
-    isLive: true,
-    towers: ['Rodas Enclave A', 'Rodas Enclave B', 'Canis', 'Pegasus']
-  },
-  {
-    id: 'my-home-bhooja',
-    name: 'My Home Bhooja',
-    city: 'Hyderabad',
-    area: 'Hitec City / Madhapur',
-    lat: 17.4385,
-    lng: 78.3752,
-    pincode: '500081',
-    activeListingsCount: 0,
-    residentCount: 1850,
-    isLive: true,
-    towers: ['Block A', 'Block B', 'Block C', 'Block D']
-  },
-  {
-    id: 'godrej-woodsman',
-    name: 'Godrej Woodsman Estate',
-    city: 'Bengaluru',
-    area: 'Hebbal / Bellary Road',
-    lat: 13.0489,
-    lng: 77.5925,
-    pincode: '560024',
-    activeListingsCount: 0,
-    residentCount: 1600,
-    isLive: true,
-    towers: ['Tower 1', 'Tower 2', 'Tower 3', 'Tower 4']
-  }
-];
+export const DEFAULT_SOCIETY: SocietyInfo = {
+  id: '',
+  name: 'All Societies',
+  city: 'All Cities',
+  area: '',
+  activeListingsCount: 0,
+  residentCount: 0,
+  isLive: true,
+  towers: []
+};
+
+export const METRO_SOCIETIES: SocietyInfo[] = [];
 
 // Helper to compute distance between coordinates in km
 export function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -404,6 +323,9 @@ export function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: nu
 
 // Helper to locate nearest society given user's latitude and longitude
 export function findNearestSociety(userLat: number, userLng: number, societies: SocietyInfo[] = METRO_SOCIETIES): { society: SocietyInfo; distanceKm: number } {
+  if (!societies || societies.length === 0) {
+    return { society: DEFAULT_SOCIETY, distanceKm: 0 };
+  }
   let closest = societies[0];
   let minDistance = Infinity;
 
