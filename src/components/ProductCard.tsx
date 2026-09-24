@@ -5,6 +5,7 @@ import { ThriftItem } from '../data/mockData';
 interface ProductCardProps {
   item: ThriftItem;
   userTower: string;
+  isOwner?: boolean;
   isSaved?: boolean;
   onToggleSave?: (id: string) => void;
   onOpenOfferModal: (item: ThriftItem) => void;
@@ -14,6 +15,7 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({
   item,
   userTower,
+  isOwner = false,
   isSaved = false,
   onToggleSave,
   onOpenOfferModal,
@@ -139,27 +141,45 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <Share2 size={11} color="#25D366" strokeWidth={2.5} />
         </a>
 
-        {/* Save Heart Button */}
-        <button
-          onClick={(e) => { e.stopPropagation(); if (onToggleSave) onToggleSave(item.id); }}
-          title={isSaved ? 'Saved to wishlist' : 'Save item'}
-          style={{
-            position: 'absolute', top: '8px', right: '8px',
-            width: '32px', height: '32px', borderRadius: 'var(--radius-full)',
-            background: isSaved ? '#DC2626' : 'rgba(255, 255, 255, 0.9)',
-            color: isSaved ? '#FFFFFF' : '#1A1A1A',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
-            transition: 'transform 0.18s var(--ease-out-expo), background-color 0.15s ease',
-            transform: isHovered || isSaved ? 'scale(1)' : 'scale(0.88)',
-            opacity: isHovered || isSaved ? 1 : 0.8,
-            backdropFilter: 'blur(4px)',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.12)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-        >
-          <Heart size={14} fill={isSaved ? '#FFFFFF' : 'none'} color={isSaved ? '#FFFFFF' : '#1A1A1A'} strokeWidth={2} />
-        </button>
+        {/* Save Heart Button or Owner Badge */}
+        {isOwner ? (
+          <div
+            style={{
+              position: 'absolute', top: '8px', right: '8px',
+              padding: '4px 9px', borderRadius: 'var(--radius-full)',
+              background: 'rgba(255, 255, 255, 0.95)',
+              color: 'var(--text-primary)',
+              fontSize: '10.5px', fontWeight: 700,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+              backdropFilter: 'blur(4px)',
+              letterSpacing: '-0.01em',
+              zIndex: 3
+            }}
+          >
+            Your Listing
+          </div>
+        ) : (
+          <button
+            onClick={(e) => { e.stopPropagation(); if (onToggleSave) onToggleSave(item.id); }}
+            title={isSaved ? 'Saved to wishlist' : 'Save item'}
+            style={{
+              position: 'absolute', top: '8px', right: '8px',
+              width: '32px', height: '32px', borderRadius: 'var(--radius-full)',
+              background: isSaved ? '#DC2626' : 'rgba(255, 255, 255, 0.9)',
+              color: isSaved ? '#FFFFFF' : '#1A1A1A',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
+              transition: 'transform 0.18s var(--ease-out-expo), background-color 0.15s ease',
+              transform: isHovered || isSaved ? 'scale(1)' : 'scale(0.88)',
+              opacity: isHovered || isSaved ? 1 : 0.8,
+              backdropFilter: 'blur(4px)',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.12)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+          >
+            <Heart size={14} fill={isSaved ? '#FFFFFF' : 'none'} color={isSaved ? '#FFFFFF' : '#1A1A1A'} strokeWidth={2} />
+          </button>
+        )}
 
         {/* Reserved Banner */}
         {item.status === 'held' && (
@@ -269,30 +289,62 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* CTA Button */}
-        <button
-          onClick={(e) => { e.stopPropagation(); onOpenOfferModal(item); }}
-          disabled={isDisabled}
-          className="card-cta-btn"
-          style={{
-            width: '100%',
-            padding: '9px 14px',
-            borderRadius: 'var(--radius-full)',
-            background: isDisabled ? 'var(--bg-subtle)' : 'var(--text-primary)',
-            color: isDisabled ? 'var(--text-muted)' : '#FFFFFF',
-            fontSize: '12.5px',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            border: 'none',
-            cursor: isDisabled ? 'default' : 'pointer',
-            letterSpacing: '-0.01em',
-          }}
-        >
-          <span>{item.status === 'sold' ? 'Sold Out' : item.status === 'held' ? 'Reserved' : 'Make Offer'}</span>
-          {!isDisabled && <ArrowRight size={13} />}
-        </button>
+        {isOwner ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); onViewDetails(item); }}
+            className="card-cta-btn"
+            style={{
+              width: '100%',
+              padding: '9px 14px',
+              borderRadius: 'var(--radius-full)',
+              background: '#F8FAFC',
+              color: 'var(--text-primary)',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              border: '1px solid var(--border-medium)',
+              cursor: 'pointer',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            <span>
+              {item.status === 'sold'
+                ? 'Your Listing · Sold'
+                : item.status === 'held'
+                ? 'Your Listing · Reserved'
+                : 'Your Listing · Manage'}
+            </span>
+            <ArrowRight size={13} />
+          </button>
+        ) : (
+          <button
+            onClick={(e) => { e.stopPropagation(); onOpenOfferModal(item); }}
+            disabled={isDisabled}
+            className="card-cta-btn"
+            style={{
+              width: '100%',
+              padding: '9px 14px',
+              borderRadius: 'var(--radius-full)',
+              background: isDisabled ? 'var(--bg-subtle)' : 'var(--text-primary)',
+              color: isDisabled ? 'var(--text-muted)' : '#FFFFFF',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              border: 'none',
+              cursor: isDisabled ? 'default' : 'pointer',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            <span>{item.status === 'sold' ? 'Sold Out' : item.status === 'held' ? 'Reserved' : 'Make Offer'}</span>
+            {!isDisabled && <ArrowRight size={13} />}
+          </button>
+        )}
       </div>
     </div>
   );

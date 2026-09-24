@@ -25,7 +25,8 @@ import {
   SocietyInfo,
   SocietyRequest,
   UserProfile,
-  ItemComment 
+  ItemComment,
+  isItemOwner
 } from './data/mockData';
 import {
   fetchItemsFromDB,
@@ -38,7 +39,9 @@ import {
   fetchUserProfileFromDB,
   saveUserProfileToDB,
   fetchSocietiesFromDB,
-  createSocietyInDB
+  createSocietyInDB,
+  updateItemStatusInDB,
+  updateItemPriceInDB
 } from './services/api';
 import { supabase, isSupabaseConfigured, signOutFromSupabase } from './lib/supabase';
 
@@ -403,14 +406,11 @@ export function App() {
     }
   };
 
-  // Items listed by the current user (matches sellerId UUID, phone, name, or tower)
-  const myItems = items.filter((it) => {
-    if (userProfile.id && it.sellerId && it.sellerId === userProfile.id) return true;
-    if (userProfile.phone && it.seller?.phone && it.seller.phone === userProfile.phone) return true;
-    if (userProfile.name && it.seller?.name && it.seller.name.toLowerCase() === userProfile.name.toLowerCase()) return true;
-    return Boolean(userTower && it.seller?.tower === userTower);
-  });
-  const pendingOffersCount = sellerOffers.filter((o) => o.status === 'pending').length;
+  // Items listed by the current user (strictly authenticated via isItemOwner)
+  const myItems = items.filter((it) => isItemOwner(it, userProfile));
+  const myItemIds = new Set(myItems.map((it) => it.id));
+  const mySellerOffers = sellerOffers.filter((o) => myItemIds.has(o.itemId));
+  const pendingOffersCount = mySellerOffers.filter((o) => o.status === 'pending').length;
 
   // Filtering logic (Feed shows items from all societies by default, with city and society filters)
   const filteredItems = items.filter((item) => {
@@ -540,6 +540,7 @@ export function App() {
       )
     );
     updateOfferStatusInDB(offer.id, 'accepted');
+    updateItemStatusInDB(offer.itemId, 'held');
   };
 
   const handleCounterSellerOffer = (offerId: string, counterPrice: number) => {
@@ -567,12 +568,14 @@ export function App() {
     setSellerOffers((prev) =>
       prev.map((o) => (o.itemId === itemId ? { ...o, status: 'accepted' as const } : o))
     );
+    updateItemStatusInDB(itemId, 'sold');
   };
 
   const handleMarkdownItem = (itemId: string, newPrice: number) => {
     setItems((prev) =>
       prev.map((it) => (it.id === itemId ? { ...it, price: newPrice } : it))
     );
+    updateItemPriceInDB(itemId, newPrice);
   };
 
   const handleDeleteItem = async (itemId: string) => {
@@ -593,6 +596,7 @@ export function App() {
         prev.map((o) => (o.itemId === itemId ? { ...o, status: 'accepted' as const } : o))
       );
     }
+    updateItemStatusInDB(itemId, status);
   };
 
   const handleSaveProfile = async (updated: UserProfile) => {
@@ -624,6 +628,9 @@ export function App() {
 
   const handleAddComment = (itemId: string, text: string) => {
     requireAuth(() => {
+      const targetItem = items.find((it) => it.id === itemId);
+      const isOwner = targetItem ? isItemOwner(targetItem, userProfile) : false;
+
       const newCmt: ItemComment = {
         id: 'cmt-' + Date.now(),
         itemId,
@@ -631,7 +638,7 @@ export function App() {
         authorTower: userTower,
         text,
         timestamp: 'Just now',
-        isSeller: false
+        isSeller: isOwner
       };
       setComments((prev) => [newCmt, ...prev]);
       createCommentInDB(newCmt);
@@ -847,22 +854,30 @@ export function App() {
         {/* Pure Product Masonry Feed */}
         {filteredItems.length > 0 ? (
           <div className="masonry-feed">
-            {filteredItems.map((item) => (
-              <ProductCard
-                key={item.id}
-                item={item}
-                userTower={userTower}
-                isSaved={savedIds.has(item.id)}
-                onToggleSave={handleToggleSave}
-                onOpenOfferModal={(it) => {
-                  requireAuth(
-                    () => setActiveOfferItem(it),
-                    `Sign in with Google to make offers and negotiate with ${it.seller.alias} in ${it.seller.tower}`
-                  );
-                }}
-                onViewDetails={(it) => setActiveDetailItem(it)}
-              />
-            ))}
+            {filteredItems.map((item) => {
+              const isOwner = isItemOwner(item, userProfile);
+              return (
+                <ProductCard
+                  key={item.id}
+                  item={item}
+                  userTower={userTower}
+                  isOwner={isOwner}
+                  isSaved={savedIds.has(item.id)}
+                  onToggleSave={handleToggleSave}
+                  onOpenOfferModal={(it) => {
+                    if (isItemOwner(it, userProfile)) {
+                      setActiveDetailItem(it);
+                      return;
+                    }
+                    requireAuth(
+                      () => setActiveOfferItem(it),
+                      `Sign in with Google to make offers and negotiate with ${it.seller.alias} in ${it.seller.tower}`
+                    );
+                  }}
+                  onViewDetails={(it) => setActiveDetailItem(it)}
+                />
+              );
+            })}
           </div>
         ) : items.length === 0 ? (
           <div style={{
@@ -1022,7 +1037,7 @@ export function App() {
         <SellerOffersModal
           currentSociety={currentSociety}
           userTower={userTower}
-          offers={sellerOffers}
+          offers={mySellerOffers}
           myItems={myItems}
           onClose={() => setShowSellerModal(false)}
           onAcceptOffer={handleAcceptSellerOffer}

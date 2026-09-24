@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Video, ShieldCheck, ArrowRight, MessageSquare, Lock, Send, Trash2, CheckCircle2 } from 'lucide-react';
-import { ThriftItem, ItemComment, UserProfile } from '../data/mockData';
+import { ThriftItem, ItemComment, UserProfile, isItemOwner } from '../data/mockData';
 
 interface ItemDetailModalProps {
   item: ThriftItem;
@@ -34,11 +34,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   const itemComments = comments.filter((c) => c.itemId === item.id);
   const discountPercent = Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100);
   const savingsAmount = item.originalPrice - item.price;
-  const isSeller = Boolean(
-    (userProfile?.phone && item.seller.phone && userProfile.phone === item.seller.phone) ||
-    (userProfile?.name && item.seller.name && userProfile.name.toLowerCase() === item.seller.name.toLowerCase()) ||
-    (userTower && item.seller.tower === userTower)
-  );
+  const isSeller = isItemOwner(item, userProfile);
 
   const handlePostQuestion = (e: React.FormEvent) => {
     e.preventDefault();

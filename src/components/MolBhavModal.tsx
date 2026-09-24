@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Video, Send, Check, Sparkles, ShieldCheck, Lock } from 'lucide-react';
-import { ThriftItem, UserProfile } from '../data/mockData';
+import { ThriftItem, UserProfile, isItemOwner } from '../data/mockData';
 import { createOfferInDB } from '../services/api';
 
 interface OfferModalProps {
@@ -31,6 +31,7 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [offerPrice, setOfferPrice] = useState<number>(item.price - 200 > 0 ? item.price - 200 : item.price);
   const [customPrice, setCustomPrice] = useState<string>('');
+  const isOwner = isItemOwner(item, userProfile);
   const [negotiationStep, setNegotiationStep] = useState<'offer' | 'counter' | 'agreed' | 'held' | 'completed'>(
     item.status === 'held' ? 'held' : 'offer'
   );
@@ -79,6 +80,10 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
   };
 
   const handleSubmitOffer = () => {
+    if (isOwner) {
+      setPhoneError('You are the seller of this listing. You cannot make an offer to yourself.');
+      return;
+    }
     const finalAmount = customPrice ? parseInt(customPrice, 10) : offerPrice;
     if (isNaN(finalAmount) || finalAmount <= 0) return;
 
@@ -106,6 +111,7 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
       itemImage: item.images[0] || '',
       askingPrice: item.price,
       offeredPrice: finalAmount,
+      buyerId: userProfile?.id,
       buyerName: userProfile?.name || `Resident (${userTower})`,
       buyerTower: userTower,
       buyerPhone: buyerPhone.trim(),
@@ -423,18 +429,33 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
               <button
                 type="button"
                 onClick={handleSubmitOffer}
+                disabled={isOwner}
                 style={{
                   padding: '8px 16px',
                   borderRadius: 'var(--radius-xs)',
-                  background: 'var(--text-primary)',
-                  color: '#FFFFFF',
+                  background: isOwner ? 'var(--bg-subtle)' : 'var(--text-primary)',
+                  color: isOwner ? 'var(--text-muted)' : '#FFFFFF',
                   fontSize: '13px',
-                  fontWeight: 500
+                  fontWeight: 500,
+                  cursor: isOwner ? 'not-allowed' : 'pointer'
                 }}
               >
-                Send Offer
+                {isOwner ? 'Own Listing' : 'Send Offer'}
               </button>
             </div>
+            {isOwner && (
+              <div style={{
+                marginTop: '10px',
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-xs)',
+                background: '#FEF2F2',
+                color: '#B91C1C',
+                fontSize: '11.5px',
+                fontWeight: 500
+              }}>
+                ℹ️ You listed this item. You cannot make an offer to yourself.
+              </div>
+            )}
           </div>
         )}
 

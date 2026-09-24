@@ -321,6 +321,64 @@ export async function deleteItemFromDB(itemId: string): Promise<boolean> {
   return true;
 }
 
+export async function updateItemStatusInDB(itemId: string, status: 'available' | 'held' | 'sold'): Promise<boolean> {
+  // 1. Update in local storage
+  try {
+    const raw = localStorage.getItem('bhangar_items');
+    if (raw) {
+      const items: ThriftItem[] = JSON.parse(raw);
+      const updated = items.map(it => it.id === itemId ? { ...it, status } : it);
+      localStorage.setItem('bhangar_items', JSON.stringify(updated));
+    }
+  } catch {}
+
+  // 2. Update in Supabase
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { error } = await supabase.from('items').update({ status }).eq('id', itemId);
+      if (error) {
+        console.warn('[Supabase] Failed to update item status:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.warn('[Supabase] Exception updating item status:', e);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export async function updateItemPriceInDB(itemId: string, newPrice: number): Promise<boolean> {
+  // 1. Update in local storage
+  try {
+    const raw = localStorage.getItem('bhangar_items');
+    if (raw) {
+      const items: ThriftItem[] = JSON.parse(raw);
+      const updated = items.map(it => it.id === itemId ? { ...it, price: newPrice } : it);
+      localStorage.setItem('bhangar_items', JSON.stringify(updated));
+    }
+  } catch {}
+
+  // 2. Update in Supabase
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { error } = await supabase.from('items').update({ price: newPrice }).eq('id', itemId);
+      if (error) {
+        console.warn('[Supabase] Failed to update item price:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.warn('[Supabase] Exception updating item price:', e);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // ==============================================================================
 // OFFERS API
 // ==============================================================================

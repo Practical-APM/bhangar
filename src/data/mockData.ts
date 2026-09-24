@@ -348,4 +348,26 @@ export function findNearestSociety(userLat: number, userLng: number, societies: 
 
 export const INITIAL_THRIFT_ITEMS: ThriftItem[] = [];
 
+// Helper to reliably check if a user is the owner/seller of an item
+export function isItemOwner(item?: ThriftItem | null, userProfile?: UserProfile | null): boolean {
+  if (!item || !userProfile || !userProfile.isLoggedIn) return false;
+  // 1. Match by Supabase auth UUID
+  if (userProfile.id && item.sellerId && userProfile.id === item.sellerId) return true;
+  // 2. Match by validated phone number
+  if (userProfile.phone && item.seller?.phone && userProfile.phone.trim() === item.seller.phone.trim()) return true;
+  // 3. Match by name and tower (avoiding generic Guest fallback)
+  if (
+    userProfile.name &&
+    item.seller?.name &&
+    userProfile.name !== 'Guest Resident' &&
+    userProfile.name.trim().toLowerCase() === item.seller.name.trim().toLowerCase() &&
+    userProfile.tower &&
+    item.seller?.tower &&
+    userProfile.tower === item.seller.tower
+  ) {
+    return true;
+  }
+  return false;
+}
+
 
