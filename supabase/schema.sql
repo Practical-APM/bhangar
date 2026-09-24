@@ -101,14 +101,18 @@ ALTER TABLE public.items ADD COLUMN IF NOT EXISTS seller_id UUID;
 ALTER TABLE public.offers ADD COLUMN IF NOT EXISTS buyer_id UUID;
 
 -- ==============================================================================
--- ROW LEVEL SECURITY (RLS) POLICIES
+-- POSTGRES ROLE PERMISSIONS (Essential for Supabase anon API access)
 -- ==============================================================================
 
-ALTER TABLE public.societies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.offers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO anon, authenticated, service_role;
+
 -- ==============================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES (Idempotent - safe to re-run multiple times)
 -- ==============================================================================

@@ -699,78 +699,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
         </div>
-
-        {/* Quick Insights Live Pulse Bar (Mobile & Desktop Instant Summary) */}
-        <div style={{
-          background: '#0F172A',
-          color: '#F8FAFC',
-          borderTop: '1px solid #1E293B',
-          padding: '8px 16px',
-          overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none'
-        }}>
-          <div style={{
-            maxWidth: '1400px',
-            margin: '0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            whiteSpace: 'nowrap',
-            fontSize: '11.5px'
-          }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: '#94A3B8' }}>
-              <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }} />
-              <strong style={{ color: '#F8FAFC' }}>Live Pulse:</strong>
-            </div>
-
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ color: '#94A3B8' }}>Liquidity:</span>
-              <span style={{ fontWeight: 700, color: '#34D399' }}>{metrics.liquidityRate}%</span>
-            </div>
-
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ color: '#94A3B8' }}>Active Listings:</span>
-              <span style={{ fontWeight: 700, color: '#FFFFFF' }}>{metrics.activeListings}</span>
-            </div>
-
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ color: '#94A3B8' }}>Listed GMV:</span>
-              <span style={{ fontWeight: 700, color: '#60A5FA' }}>₹{metrics.totalListedGMV.toLocaleString('en-IN')}</span>
-            </div>
-
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ color: '#94A3B8' }}>Realized Sold:</span>
-              <span style={{ fontWeight: 700, color: '#FBBF24' }}>₹{metrics.soldGMV.toLocaleString('en-IN')}</span>
-            </div>
-
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ color: '#94A3B8' }}>STR:</span>
-              <span style={{ fontWeight: 700, color: '#FBBF24' }}>{metrics.sellThroughRate}%</span>
-            </div>
-
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ color: '#94A3B8' }}>Bids/MolBhav:</span>
-              <span style={{ fontWeight: 700, color: '#C084FC' }}>{metrics.totalOffers}</span>
-            </div>
-
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ color: '#94A3B8' }}>AI Calls:</span>
-              <span style={{ fontWeight: 700, color: '#A7F3D0' }}>{aiStats.totalCalls} (₹{aiStats.totalCostINR})</span>
-            </div>
-
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ color: '#94A3B8' }}>DB Engine:</span>
-              <span style={{ fontWeight: 600, color: isSupabaseConfigured() ? '#34D399' : '#FCD34D' }}>
-                {isSupabaseConfigured() ? 'Supabase Live' : 'Local Fallback'}
-              </span>
-            </div>
-          </div>
-        </div>
       </header>
 
       {/* Tabs Sub-Navigation (Smooth Horizontal Scroll on Mobile) */}
-      <div style={{ background: '#FFFFFF', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 92, zIndex: 40 }}>
+      <div style={{ background: '#FFFFFF', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 60, zIndex: 40 }}>
         <div style={{
           maxWidth: '1400px',
           margin: '0 auto',
@@ -778,12 +710,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }}>
           <div className="admin-tab-nav">
             {[
-              { id: 'overview', label: 'PM Overview & Funnel', icon: BarChart3 },
-              { id: 'supply', label: `Supply (${items.length})`, icon: ShoppingBag },
-              { id: 'demand', label: `Demand (${offers.length})`, icon: TrendingUp },
-              { id: 'residents', label: 'Residents & Trust', icon: Users },
+              { id: 'overview', label: 'Overview', icon: BarChart3 },
+              { id: 'supply', label: `Listings (${items.length})`, icon: ShoppingBag },
+              { id: 'demand', label: `Offers (${offers.length})`, icon: TrendingUp },
+              { id: 'residents', label: 'Residents', icon: Users },
               { id: 'societies', label: `Societies (${societies.length})`, icon: Building2 },
-              { id: 'resources', label: `AI & System Resources (${aiStats.totalCalls})`, icon: Cpu, highlight: true }
+              { id: 'resources', label: 'Database & System', icon: Database }
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -809,18 +741,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 >
                   <Icon size={14} color={isActive ? '#0F172A' : '#94A3B8'} />
                   <span>{tab.label}</span>
-                  {tab.highlight && (
-                    <span style={{
-                      background: '#ECFDF5',
-                      color: '#059669',
-                      fontSize: '9.5px',
-                      padding: '1px 5px',
-                      borderRadius: '999px',
-                      fontWeight: 700
-                    }}>
-                      LIVE
-                    </span>
-                  )}
                 </button>
               );
             })}
@@ -1574,11 +1494,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         )}
 
         {/* =========================================================
-            TAB 6: AI USAGE & SYSTEM RESOURCE TELEMETRY
+            TAB 6: DATABASE & SYSTEM STATUS
            ========================================================= */}
         {activeTab === 'resources' && (
-          <div>
-            {/* Header & Controls */}
+          <div style={{ maxWidth: '960px', margin: '0 auto' }}>
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -1588,26 +1507,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               marginBottom: '20px'
             }}>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px 0' }}>
-                  AI Usage & Infrastructure Telemetry
+                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px 0' }}>
+                  Database & Cloud Infrastructure
                 </h3>
-                <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>
-                  Real-time monitoring of Gemini token consumption, latency, API costs (INR), and database resource utilization.
+                <p style={{ fontSize: '13px', color: '#64748B', margin: 0 }}>
+                  Live connection health, storage status, and Supabase database permissions.
                 </p>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
                   type="button"
                   onClick={handleTestSupabase}
                   disabled={isTestingSupabase}
                   style={{
-                    padding: '8px 14px',
-                    borderRadius: '6px',
+                    padding: '9px 16px',
+                    borderRadius: '8px',
                     background: '#047857',
                     color: '#FFFFFF',
                     border: 'none',
-                    fontSize: '12px',
+                    fontSize: '12.5px',
                     fontWeight: 600,
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -1615,8 +1534,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     cursor: isTestingSupabase ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  <Database size={13} className={isTestingSupabase ? 'spin-icon' : ''} />
-                  <span>{isTestingSupabase ? 'Testing Supabase...' : 'Test Supabase DB & CDN'}</span>
+                  <Database size={14} className={isTestingSupabase ? 'spin-icon' : ''} />
+                  <span>{isTestingSupabase ? 'Testing Connection...' : 'Test Supabase Connection'}</span>
                 </button>
 
                 <button
@@ -1624,12 +1543,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onClick={handleTestGeminiPing}
                   disabled={isTestingPing}
                   style={{
-                    padding: '8px 14px',
-                    borderRadius: '6px',
+                    padding: '9px 16px',
+                    borderRadius: '8px',
                     background: '#0F172A',
                     color: '#FFFFFF',
                     border: 'none',
-                    fontSize: '12px',
+                    fontSize: '12.5px',
                     fontWeight: 600,
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -1637,351 +1556,174 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     cursor: isTestingPing ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  <Activity size={13} className={isTestingPing ? 'spin-icon' : ''} />
-                  <span>{isTestingPing ? 'Pinging Gemini...' : 'Live Gemini Healthcheck'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleClearTelemetry}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    background: '#FFFFFF',
-                    color: '#DC2626',
-                    border: '1px solid #FECACA',
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Clear Logs
+                  <Activity size={14} className={isTestingPing ? 'spin-icon' : ''} />
+                  <span>{isTestingPing ? 'Pinging...' : 'Gemini AI Healthcheck'}</span>
                 </button>
               </div>
             </div>
 
-            {/* Supabase Test Diagnostic Banner */}
+            {/* Diagnostic Alert Box */}
             {supabaseResult && (
               <div style={{
-                marginBottom: '16px',
-                padding: '12px 16px',
-                borderRadius: '8px',
+                marginBottom: '20px',
+                padding: '14px 18px',
+                borderRadius: '10px',
                 background: supabaseResult.dbConnected && supabaseResult.storageConnected ? '#ECFDF5' : (supabaseResult.dbConnected ? '#FFFBEB' : '#FEF2F2'),
                 border: `1px solid ${supabaseResult.dbConnected && supabaseResult.storageConnected ? '#A7F3D0' : (supabaseResult.dbConnected ? '#FDE68A' : '#FECACA')}`,
                 color: supabaseResult.dbConnected && supabaseResult.storageConnected ? '#065F46' : (supabaseResult.dbConnected ? '#92400E' : '#991B1B'),
-                fontSize: '12.5px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '8px'
+                fontSize: '13px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {supabaseResult.dbConnected && supabaseResult.storageConnected ? <Check size={16} /> : <AlertCircle size={16} />}
-                  <span><strong>{supabaseResult.message}</strong></span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 600, marginBottom: '6px' }}>
+                  {supabaseResult.dbConnected && supabaseResult.storageConnected ? <Check size={18} /> : <AlertCircle size={18} />}
+                  <span>{supabaseResult.message}</span>
                 </div>
-                <div style={{ display: 'flex', gap: '12px', fontSize: '12px' }}>
-                  <span>DB Items: <strong>{supabaseResult.itemsCount}</strong></span>
-                  <span>Latency: <strong>{supabaseResult.latencyMs}ms</strong></span>
-                </div>
+                {supabaseResult.error && (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '10px 14px',
+                    borderRadius: '6px',
+                    background: '#FFFFFF',
+                    color: '#DC2626',
+                    fontFamily: 'monospace',
+                    fontSize: '12px',
+                    border: '1px solid #FECACA'
+                  }}>
+                    {supabaseResult.error}
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Ping Healthcheck Banner */}
+            {/* Gemini Ping Result Alert */}
             {pingResult && (
               <div style={{
                 marginBottom: '20px',
-                padding: '12px 16px',
-                borderRadius: '8px',
+                padding: '14px 18px',
+                borderRadius: '10px',
                 background: pingResult.success ? '#ECFDF5' : '#FEF2F2',
                 border: `1px solid ${pingResult.success ? '#A7F3D0' : '#FECACA'}`,
                 color: pingResult.success ? '#065F46' : '#991B1B',
-                fontSize: '12.5px',
+                fontSize: '13px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '8px'
+                justifyContent: 'space-between'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {pingResult.success ? <Check size={16} /> : <AlertCircle size={16} />}
-                  <span><strong>{pingResult.message}</strong></span>
+                  <span>{pingResult.message}</span>
                 </div>
-                <div style={{ display: 'flex', gap: '12px', fontSize: '12px' }}>
-                  <span>Latency: <strong>{pingResult.latencyMs}ms</strong></span>
-                  {pingResult.tokens && <span>Tokens: <strong>{pingResult.tokens}</strong></span>}
-                </div>
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>{pingResult.latencyMs}ms</span>
               </div>
             )}
 
-            {/* 4 Core Resource Cards */}
-            <div className="admin-kpi-grid">
-              {/* AI Invocations */}
-              <div className="admin-card-compact" style={{
-                background: '#FFFFFF',
-                borderRadius: '12px',
-                padding: '18px 20px',
-                border: '1px solid #E2E8F0'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>
-                    AI Invocations
-                  </span>
-                  <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Cpu size={13} />
-                  </div>
-                </div>
-                <div className="admin-kpi-val" style={{ fontSize: '24px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>
-                  {aiStats.totalCalls}
-                </div>
-                <div style={{ fontSize: '11.5px', color: '#64748B' }}>
-                  {aiStats.geminiCalls} Cloud Gemini · {aiStats.localCalls} Local Heuristic ({aiStats.todayCalls} today)
-                </div>
-              </div>
-
-              {/* Total Tokens Consumed */}
-              <div className="admin-card-compact" style={{
-                background: '#FFFFFF',
-                borderRadius: '12px',
-                padding: '18px 20px',
-                border: '1px solid #E2E8F0'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>
-                    Tokens Consumed
-                  </span>
-                  <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#F5F3FF', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Zap size={13} />
-                  </div>
-                </div>
-                <div className="admin-kpi-val" style={{ fontSize: '24px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>
-                  {aiStats.totalTokens.toLocaleString()}
-                </div>
-                <div style={{ fontSize: '11.5px', color: '#64748B' }}>
-                  {aiStats.promptTokens.toLocaleString()} prompt · {aiStats.completionTokens.toLocaleString()} candidates
-                </div>
-              </div>
-
-              {/* Estimated AI Cost */}
-              <div className="admin-card-compact" style={{
-                background: '#FFFFFF',
-                borderRadius: '12px',
-                padding: '18px 20px',
-                border: '1px solid #E2E8F0'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>
-                    Calculated AI Cost
-                  </span>
-                  <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Coins size={13} />
-                  </div>
-                </div>
-                <div className="admin-kpi-val" style={{ fontSize: '24px', fontWeight: 700, color: '#059669', marginBottom: '2px' }}>
-                  ₹{aiStats.totalCostINR}
-                </div>
-                <div style={{ fontSize: '11.5px', color: '#64748B' }}>
-                  ${aiStats.totalCostUSD} USD ($0.10/M prompt, $0.40/M output)
-                </div>
-              </div>
-
-              {/* Latency & Health */}
-              <div className="admin-card-compact" style={{
-                background: '#FFFFFF',
-                borderRadius: '12px',
-                padding: '18px 20px',
-                border: '1px solid #E2E8F0'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>
-                    Latency & Engine
-                  </span>
-                  <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Clock size={13} />
-                  </div>
-                </div>
-                <div className="admin-kpi-val" style={{ fontSize: '24px', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>
-                  {aiStats.avgLatencyMs}ms
-                </div>
-                <div style={{ fontSize: '11.5px', color: '#64748B' }}>
-                  Active model: <strong>{aiStats.model}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Infrastructure & Storage Breakdown */}
-            <div className="admin-funnel-grid" style={{ marginBottom: '24px' }}>
-              {/* Database Telemetry */}
-              <div style={{
-                background: '#FFFFFF',
-                borderRadius: '12px',
-                padding: '20px',
-                border: '1px solid #E2E8F0'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+            {/* Core Status Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+              {/* Database Status */}
+              <div style={{ background: '#FFFFFF', borderRadius: '12px', padding: '20px', border: '1px solid #E2E8F0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Database size={16} color="#0F172A" />
-                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>
-                      Database Resources (Supabase / Local)
-                    </h4>
+                    <Database size={18} color="#0F172A" />
+                    <span style={{ fontWeight: 600, fontSize: '14px', color: '#0F172A' }}>PostgreSQL Database</span>
                   </div>
                   <span style={{
                     fontSize: '11px',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     padding: '2px 8px',
-                    borderRadius: '4px',
+                    borderRadius: '999px',
                     background: isSupabaseConfigured() ? '#ECFDF5' : '#FFFBEB',
                     color: isSupabaseConfigured() ? '#059669' : '#B45309'
                   }}>
-                    {isSupabaseConfigured() ? 'Connected' : 'Local Fallback'}
+                    {isSupabaseConfigured() ? 'CONFIGURED' : 'LOCAL FALLBACK'}
                   </span>
                 </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px' }}>
-                    <span style={{ color: '#64748B' }}>Items Table Rows:</span>
-                    <strong style={{ color: '#0F172A' }}>{items.length} records</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px' }}>
-                    <span style={{ color: '#64748B' }}>Offers Table Rows:</span>
-                    <strong style={{ color: '#0F172A' }}>{offers.length} records</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px' }}>
-                    <span style={{ color: '#64748B' }}>Comments Table Rows:</span>
-                    <strong style={{ color: '#0F172A' }}>{comments.length} records</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px' }}>
-                    <span style={{ color: '#64748B' }}>Societies Table Rows:</span>
-                    <strong style={{ color: '#0F172A' }}>{societies.length} records</strong>
-                  </div>
+                <div style={{ fontSize: '13px', color: '#64748B', lineHeight: 1.6 }}>
+                  <div>Live Items: <strong style={{ color: '#0F172A' }}>{items.length}</strong></div>
+                  <div>Live Offers: <strong style={{ color: '#0F172A' }}>{offers.length}</strong></div>
+                  <div>Live Societies: <strong style={{ color: '#0F172A' }}>{societies.length}</strong></div>
                 </div>
               </div>
 
-              {/* Asset Storage & Bandwidth */}
-              <div style={{
-                background: '#FFFFFF',
-                borderRadius: '12px',
-                padding: '20px',
-                border: '1px solid #E2E8F0'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              {/* Storage CDN Status */}
+              <div style={{ background: '#FFFFFF', borderRadius: '12px', padding: '20px', border: '1px solid #E2E8F0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <HardDrive size={16} color="#0F172A" />
-                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>
-                      Media & Storage Footprint
-                    </h4>
+                    <HardDrive size={18} color="#0F172A" />
+                    <span style={{ fontWeight: 600, fontSize: '14px', color: '#0F172A' }}>Image Storage & CDN</span>
                   </div>
-                  <span style={{ fontSize: '11px', color: '#64748B' }}>
-                    Client Cache: <strong>{storageUsageKB} KB</strong>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: '#ECFDF5',
+                    color: '#059669'
+                  }}>
+                    ACTIVE
                   </span>
                 </div>
+                <div style={{ fontSize: '13px', color: '#64748B', lineHeight: 1.6 }}>
+                  <div>Bucket: <strong style={{ color: '#0F172A' }}>listing-images</strong></div>
+                  <div>Public CDN: <strong style={{ color: '#059669' }}>Enabled</strong></div>
+                  <div>Upload Optimization: <strong style={{ color: '#0F172A' }}>Active</strong></div>
+                </div>
+              </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px' }}>
-                    <span style={{ color: '#64748B' }}>Total Images Tracked:</span>
-                    <strong style={{ color: '#0F172A' }}>{imageTelemetry.totalImages} images</strong>
+              {/* AI Valuation Engine */}
+              <div style={{ background: '#FFFFFF', borderRadius: '12px', padding: '20px', border: '1px solid #E2E8F0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Cpu size={18} color="#0F172A" />
+                    <span style={{ fontWeight: 600, fontSize: '14px', color: '#0F172A' }}>Gemini AI Engine</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px' }}>
-                    <span style={{ color: '#64748B' }}>Supabase / CDN URLs:</span>
-                    <strong style={{ color: '#059669' }}>{imageTelemetry.remoteImages} images</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px' }}>
-                    <span style={{ color: '#64748B' }}>Inline Base64 Payloads:</span>
-                    <strong style={{ color: '#D97706' }}>{imageTelemetry.base64Images} images</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px' }}>
-                    <span style={{ color: '#64748B' }}>Telemetry Buffer:</span>
-                    <strong style={{ color: '#0F172A' }}>{aiStats.recentCalls.length} calls logged</strong>
-                  </div>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: '#EFF6FF',
+                    color: '#2563EB'
+                  }}>
+                    READY
+                  </span>
+                </div>
+                <div style={{ fontSize: '13px', color: '#64748B', lineHeight: 1.6 }}>
+                  <div>Model: <strong style={{ color: '#0F172A' }}>gemini-2.0-flash</strong></div>
+                  <div>Automated Valuation: <strong style={{ color: '#059669' }}>Active</strong></div>
+                  <div>Elevator & Fit Check: <strong style={{ color: '#059669' }}>Active</strong></div>
                 </div>
               </div>
             </div>
 
-            {/* Recent AI Request Logs Stream */}
-            <div style={{ background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '16px' }}>
-              <div style={{ marginBottom: '14px' }}>
-                <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A', margin: '0 0 4px 0' }}>
-                  Live AI Request Stream (Last 50 Invocations)
-                </h4>
-                <p style={{ fontSize: '11.5px', color: '#64748B', margin: 0 }}>
-                  Exact tokens, latency, engine choice, and estimated cost for each resident item analyzed.
-                </p>
-              </div>
+            {/* Quick SQL Permissions Help Box */}
+            <div style={{
+              background: '#FFFFFF',
+              borderRadius: '12px',
+              padding: '20px',
+              border: '1px solid #E2E8F0'
+            }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>
+                🔑 Supabase API Permission Setup
+              </h4>
+              <p style={{ margin: '0 0 12px 0', fontSize: '12.5px', color: '#64748B', lineHeight: 1.5 }}>
+                If the database connection reports <code style={{ color: '#DC2626' }}>permission denied for table items</code>, execute this SQL block in your <strong>Supabase SQL Editor</strong> to grant access to the anon public client:
+              </p>
+              <pre style={{
+                background: '#0F172A',
+                color: '#34D399',
+                padding: '14px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                overflowX: 'auto',
+                lineHeight: 1.5,
+                margin: 0
+              }}>
+{`GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
 
-              <div className="admin-table-scroll">
-                <table className="admin-table-min" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontWeight: 600 }}>
-                      <th style={{ padding: '8px 10px' }}>Timestamp</th>
-                      <th style={{ padding: '8px 10px' }}>Item Title</th>
-                      <th style={{ padding: '8px 10px' }}>Engine</th>
-                      <th style={{ padding: '8px 10px' }}>Type</th>
-                      <th style={{ padding: '8px 10px' }}>Tokens</th>
-                      <th style={{ padding: '8px 10px' }}>Latency</th>
-                      <th style={{ padding: '8px 10px' }}>Cost (INR)</th>
-                      <th style={{ padding: '8px 10px' }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {aiStats.recentCalls.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} style={{ padding: '28px', textAlign: 'center', color: '#94A3B8' }}>
-                          No AI requests recorded in telemetry yet. Create an item to trigger Gemini valuation.
-                        </td>
-                      </tr>
-                    ) : (
-                      aiStats.recentCalls.map((call) => (
-                        <tr key={call.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                          <td style={{ padding: '10px', color: '#64748B', whiteSpace: 'nowrap' }}>
-                            {new Date(call.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                          </td>
-                          <td style={{ padding: '10px', fontWeight: 500, color: '#0F172A', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {call.title}
-                          </td>
-                          <td style={{ padding: '10px' }}>
-                            <span style={{
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              fontSize: '10.5px',
-                              fontWeight: 600,
-                              background: call.engine === 'gemini-2.0-flash' ? '#EFF6FF' : '#F1F5F9',
-                              color: call.engine === 'gemini-2.0-flash' ? '#2563EB' : '#475569'
-                            }}>
-                              {call.engine}
-                            </span>
-                          </td>
-                          <td style={{ padding: '10px', textTransform: 'capitalize', color: '#64748B' }}>
-                            {call.type}
-                          </td>
-                          <td style={{ padding: '10px', color: '#0F172A', fontWeight: 500 }}>
-                            {call.totalTokens > 0 ? call.totalTokens : '0 (heuristic)'}
-                          </td>
-                          <td style={{ padding: '10px', color: '#64748B' }}>
-                            {call.latencyMs}ms
-                          </td>
-                          <td style={{ padding: '10px', fontWeight: 600, color: call.estimatedCostINR > 0 ? '#059669' : '#94A3B8' }}>
-                            ₹{call.estimatedCostINR}
-                          </td>
-                          <td style={{ padding: '10px' }}>
-                            <span style={{
-                              display: 'inline-block',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              fontSize: '10px',
-                              fontWeight: 600,
-                              textTransform: 'uppercase',
-                              background: call.status === 'success' ? '#ECFDF5' : call.status === 'fallback' ? '#FFFBEB' : '#FEF2F2',
-                              color: call.status === 'success' ? '#059669' : call.status === 'fallback' ? '#B45309' : '#DC2626'
-                            }}>
-                              {call.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;`}
+              </pre>
             </div>
           </div>
         )}

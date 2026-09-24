@@ -557,17 +557,19 @@ export async function testSupabaseConnection(): Promise<{
     // 1. Test database table read
     const { data: dbData, error: dbError, count } = await supabase
       .from('items')
-      .select('id', { count: 'exact', head: true });
+      .select('id', { count: 'exact' })
+      .limit(1);
 
     if (dbError) {
+      const detail = dbError.message || dbError.details || dbError.hint || `Permission denied (code: ${dbError.code || '42501'})`;
       return {
         isConfigured: true,
         dbConnected: false,
         storageConnected: false,
         itemsCount: 0,
         latencyMs: Date.now() - startTime,
-        message: `Database connection failed: ${dbError.message}. Make sure supabase/schema.sql has been run in your Supabase SQL Editor.`,
-        error: dbError.message
+        message: `Database connection failed: ${detail}. Please execute the GRANT permissions in supabase/schema.sql.`,
+        error: detail
       };
     }
 
