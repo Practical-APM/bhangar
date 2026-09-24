@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { ThriftItem, SellerOffer, ItemComment, INITIAL_THRIFT_ITEMS, INITIAL_SELLER_OFFERS, INITIAL_COMMENTS } from '../data/mockData';
+import { ThriftItem, SellerOffer, ItemComment, UserProfile, SocietyInfo, INITIAL_THRIFT_ITEMS, INITIAL_SELLER_OFFERS, INITIAL_COMMENTS } from '../data/mockData';
 
 // Map database row to ThriftItem
 function mapRowToItem(row: any): ThriftItem {
@@ -59,7 +59,8 @@ function mapRowToItem(row: any): ThriftItem {
     movingOutDate: row.moving_out_date,
     status: row.status || 'available',
     tags: Array.isArray(row.tags) ? row.tags : ['#VerifiedResident'],
-    listedAgo: 'Just now'
+    listedAgo: 'Just now',
+    sellerId: row.seller_id || undefined
   };
 }
 
@@ -246,7 +247,8 @@ export async function createItemInDB(item: ThriftItem): Promise<ThriftItem> {
         status: dbItem.status,
         tags: dbItem.tags,
         society_id: dbItem.seller?.society ? dbItem.seller.society.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'general',
-        is_seed: false
+        is_seed: false,
+        seller_id: dbItem.sellerId || null
       });
 
       if (!error) {
@@ -549,4 +551,167 @@ export async function testSupabaseConnection(): Promise<{
       error: err.message
     };
   }
+}
+
+// ==============================================================================
+// PROFILES API (Persistent Cloud Resident Profiles)
+// ==============================================================================
+
+export async function fetchUserProfileFromDB(userId: string): Promise<UserProfile | null> {
+  if (!isSupabaseConfigured() || !supabase || !userId) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!error && data) {
+      return {
+        id: data.id,
+        name: data.name || '',
+        username: data.username || (data.email ? data.email.split('@')[0] : ''),
+        email: data.email || '',
+        phone: data.phone || '',
+        authProvider: 'google',
+        googleAvatar: data.avatar_url,
+        customAvatar: data.avatar_url,
+        isLoggedIn: true,
+        isOnboarded: Boolean(data.is_onboarded && data.phone && data.tower),
+        tower: data.tower || '',
+        societyId: data.society_id || '',
+        societyName: data.society_name || '',
+        isVerified: true,
+        rating: typeof data.rating === 'number' ? data.rating : 5.0,
+        dealsCompleted: typeof data.deals_completed === 'number' ? data.deals_completed : 0,
+        joinedDate: 'Resident'
+      };
+    }
+  } catch (e) {
+    console.warn('[Supabase] Failed to fetch user profile:', e);
+  }
+
+  return null;
+}
+
+export async function saveUserProfileToDB(profile: UserProfile, userId: string): Promise<boolean> {
+  if (!userId) return false;
+
+  // 1. Immediately cache in localStorage for instant local access
+  try {
+    localStorage.setItem('bhangar_user_profile', JSON.stringify({ ...profile, id: userId }));
+    if (profile.tower) {
+      localStorage.setItem('bhangar_tower', profile.tower);
+    }
+  } catch {}
+
+  // 2. Persist to Supabase profiles table
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { error } = await supabase.from('profiles').upsert({
+        id: userId,
+        email: profile.email,
+        name: profile.name,
+        username: profile.username || profile.email.split('@')[0],
+        phone: profile.phone || '',
+        tower: profile.tower || '',
+        society_id: profile.societyId || '',
+        society_name: profile.societyName || '',
+        avatar_url: profile.customAvatar || profile.googleAvatar || '',
+        is_onboarded: Boolean(profile.isOnboarded && profile.phone && profile.tower),
+        rating: profile.rating || 5.0,
+        deals_completed: profile.dealsCompleted || 0,
+        updated_at: new Date().toISOString()
+      });
+
+      if (error) {
+        console.warn('[Supabase] Failed to save profile to database:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.warn('[Supabase] Exception saving profile:', e);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// ==============================================================================
+// SOCIETIES API (Centralized Cloud Directory)
+// ==============================================================================
+
+export async function fetchSocietiesFromDB(): Promise<SocietyInfo[]> {
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('societies')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        return data.map((row: any) => ({
+          id: row.id,
+          name: row.name,
+          city: row.city,
+          pincode: row.pincode,
+          area: row.area || row.city,
+          towers: Array.isArray(row.towers) ? row.towers : [],
+          residentCount: row.resident_count || 0,
+          activeListingsCount: row.active_listings_count || 0,
+          isLive: true
+        }));
+      }
+    } catch (e) {
+      console.warn('[Supabase] Failed to fetch societies from DB:', e);
+    }
+  }
+
+  // Fallback to local storage
+  try {
+    const raw = localStorage.getItem('bhangar_societies');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+
+  return [];
+}
+
+export async function createSocietyInDB(soc: SocietyInfo): Promise<boolean> {
+  // Update local storage
+  try {
+    const raw = localStorage.getItem('bhangar_societies');
+    const existing: SocietyInfo[] = raw ? JSON.parse(raw) : [];
+    const updated = [soc, ...existing.filter(s => s.id !== soc.id)];
+    localStorage.setItem('bhangar_societies', JSON.stringify(updated));
+  } catch {}
+
+  // Save to Supabase
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { error } = await supabase.from('societies').upsert({
+        id: soc.id,
+        name: soc.name,
+        city: soc.city,
+        pincode: soc.pincode || '',
+        towers: soc.towers || [],
+        resident_count: soc.residentCount || 0,
+        active_listings_count: soc.activeListingsCount || 0
+      });
+      if (error) {
+        console.warn('[Supabase] Failed to insert society:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.warn('[Supabase] Exception inserting society:', e);
+      return false;
+    }
+  }
+
+  return true;
 }

@@ -34,7 +34,11 @@ import {
   fetchOffersFromDB,
   updateOfferStatusInDB,
   createCommentInDB,
-  subscribeToRealtimeChanges
+  subscribeToRealtimeChanges,
+  fetchUserProfileFromDB,
+  saveUserProfileToDB,
+  fetchSocietiesFromDB,
+  createSocietyInDB
 } from './services/api';
 import { supabase, isSupabaseConfigured, signOutFromSupabase } from './lib/supabase';
 
@@ -250,6 +254,16 @@ export function App() {
     fetchOffersFromDB().then((offers) => {
       if (offers) setSellerOffers(offers);
     });
+    fetchSocietiesFromDB().then((dbSocieties) => {
+      if (dbSocieties && dbSocieties.length > 0) {
+        setSocieties((prev) => {
+          const map = new Map<string, SocietyInfo>();
+          prev.forEach(s => map.set(s.id, s));
+          dbSocieties.forEach(s => map.set(s.id, s));
+          return Array.from(map.values());
+        });
+      }
+    });
 
     const unsubscribe = subscribeToRealtimeChanges(
       () => {
@@ -285,51 +299,70 @@ export function App() {
   useEffect(() => {
     if (!supabase) return;
 
-    const syncUserFromSupabase = (user: any) => {
+    const syncUserFromSupabase = async (user: any) => {
       const meta = user.user_metadata || {};
       const fullName = meta.full_name || meta.name || user.email?.split('@')[0] || 'Resident';
       const avatar = meta.avatar_url || meta.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}`;
 
       const saved = loadStorage<UserProfile | null>('bhangar_user_profile', null);
+      
+      // Fetch cloud-persisted resident profile from Supabase first
+      let dbProfile: UserProfile | null = null;
+      try {
+        dbProfile = await fetchUserProfileFromDB(user.id);
+      } catch (err) {
+        console.warn('[SyncUser] Cloud profile lookup warning:', err);
+      }
+
+      const activeProfile = dbProfile || saved;
+
       const isAlreadyOnboarded = Boolean(
-        saved && 
-        saved.isLoggedIn && 
-        saved.email === user.email && 
-        saved.isOnboarded && 
-        saved.phone && 
-        saved.tower
+        activeProfile && 
+        activeProfile.isOnboarded && 
+        activeProfile.phone && 
+        activeProfile.tower
       );
 
       const baseProfile: UserProfile = {
-        ...(saved || INITIAL_USER_PROFILE),
-        name: (saved && saved.name) || fullName,
-        username: (saved && saved.username) || user.email?.split('@')[0] || fullName.toLowerCase().replace(/\s+/g, '_'),
-        email: user.email || (saved ? saved.email : ''),
+        ...(activeProfile || INITIAL_USER_PROFILE),
+        id: user.id,
+        name: activeProfile?.name || fullName,
+        username: activeProfile?.username || user.email?.split('@')[0] || fullName.toLowerCase().replace(/\s+/g, '_'),
+        email: user.email || activeProfile?.email || '',
         authProvider: 'google',
-        googleAvatar: (saved && saved.googleAvatar) || avatar,
-        customAvatar: saved?.customAvatar,
+        googleAvatar: activeProfile?.googleAvatar || avatar,
+        customAvatar: activeProfile?.customAvatar,
         isLoggedIn: true,
         isOnboarded: isAlreadyOnboarded,
-        tower: (saved && saved.tower) || '',
-        societyId: (saved && saved.societyId) || currentSociety.id,
-        societyName: (saved && saved.societyName) || currentSociety.name,
-        phone: (saved && saved.phone) || '',
+        tower: activeProfile?.tower || '',
+        societyId: activeProfile?.societyId || currentSociety.id,
+        societyName: activeProfile?.societyName || currentSociety.name,
+        phone: activeProfile?.phone || '',
         isVerified: true,
       };
 
       setUserProfile(baseProfile);
-      if (saved?.tower) {
-        setUserTower(saved.tower);
+      if (baseProfile.tower) {
+        setUserTower(baseProfile.tower);
+      }
+      if (baseProfile.societyId && baseProfile.societyId !== currentSociety.id) {
+        const matchingSoc = societies.find(s => s.id === baseProfile.societyId);
+        if (matchingSoc) {
+          setCurrentSociety(matchingSoc);
+        }
       }
       setShowGoogleModal(false);
 
       if (!isAlreadyOnboarded) {
-        // Automatically pop up Onboarding modal to complete profile!
+        // Automatically pop up Onboarding modal to complete profile for new residents!
         setShowOnboardingModal(true);
-      } else if (pendingAction) {
-        const action = pendingAction;
-        setPendingAction(null);
-        setTimeout(() => action(), 100);
+      } else {
+        setShowOnboardingModal(false);
+        if (pendingAction) {
+          const action = pendingAction;
+          setPendingAction(null);
+          setTimeout(() => action(), 100);
+        }
       }
     };
 
@@ -357,7 +390,7 @@ export function App() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [currentSociety.id, currentSociety.name, pendingAction]);
+  }, [currentSociety.id, currentSociety.name, pendingAction, societies]);
 
 
   const requireAuth = (action: () => void, promptReason: string) => {
@@ -370,11 +403,12 @@ export function App() {
     }
   };
 
-  // Items listed by the current user (matches user phone, name, or tower)
+  // Items listed by the current user (matches sellerId UUID, phone, name, or tower)
   const myItems = items.filter((it) => {
-    if (userProfile.phone && it.seller.phone && it.seller.phone === userProfile.phone) return true;
-    if (userProfile.name && it.seller.name && it.seller.name.toLowerCase() === userProfile.name.toLowerCase()) return true;
-    return userTower && it.seller.tower === userTower;
+    if (userProfile.id && it.sellerId && it.sellerId === userProfile.id) return true;
+    if (userProfile.phone && it.seller?.phone && it.seller.phone === userProfile.phone) return true;
+    if (userProfile.name && it.seller?.name && it.seller.name.toLowerCase() === userProfile.name.toLowerCase()) return true;
+    return Boolean(userTower && it.seller?.tower === userTower);
   });
   const pendingOffersCount = sellerOffers.filter((o) => o.status === 'pending').length;
 
@@ -451,6 +485,7 @@ export function App() {
     };
     setSocieties((prev) => [newSoc, ...prev]);
     handleSelectSociety(newSoc);
+    createSocietyInDB(newSoc);
   };
 
   const handleResetFilters = () => {
@@ -478,9 +513,13 @@ export function App() {
   };
 
   const handleItemAdded = async (newItem: ThriftItem) => {
-    setItems((prev) => [newItem, ...prev]);
+    const itemWithSeller: ThriftItem = {
+      ...newItem,
+      sellerId: userProfile.id || newItem.sellerId,
+    };
+    setItems((prev) => [itemWithSeller, ...prev]);
     try {
-      const persisted = await createItemInDB(newItem);
+      const persisted = await createItemInDB(itemWithSeller);
       setItems((prev) => prev.map((it) => (it.id === persisted.id ? persisted : it)));
     } catch (e) {
       console.warn('[ItemAdded] DB sync error:', e);
@@ -556,14 +595,26 @@ export function App() {
     }
   };
 
-  const handleSaveProfile = (updated: UserProfile) => {
-    setUserProfile(updated);
-    setUserTower(updated.tower);
-    const soc = societies.find((s) => s.id === updated.societyId);
+  const handleSaveProfile = async (updated: UserProfile) => {
+    const profileToSave: UserProfile = {
+      ...updated,
+      id: userProfile.id || updated.id,
+      isOnboarded: true,
+      isLoggedIn: true
+    };
+    setUserProfile(profileToSave);
+    setUserTower(profileToSave.tower);
+    const soc = societies.find((s) => s.id === profileToSave.societyId);
     if (soc) {
       setCurrentSociety(soc);
     }
     setShowOnboardingModal(false);
+
+    // Save to Cloud Supabase DB!
+    if (profileToSave.id) {
+      await saveUserProfileToDB(profileToSave, profileToSave.id);
+    }
+
     if (pendingAction) {
       const action = pendingAction;
       setPendingAction(null);

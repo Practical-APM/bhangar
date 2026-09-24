@@ -41,6 +41,7 @@ export interface ThriftItem {
   tags: string[];
   listedAgo: string;
   is_seed?: boolean;
+  sellerId?: string;
 }
 
 export interface SellerOffer {
@@ -58,6 +59,7 @@ export interface SellerOffer {
   counterPrice?: number;
   timestamp: string;
   buyerNote: string;
+  buyerId?: string;
 }
 
 export interface ItemComment {
@@ -71,6 +73,7 @@ export interface ItemComment {
 }
 
 export interface UserProfile {
+  id?: string;
   name: string;
   username?: string; // option to define username/alias
   email: string;

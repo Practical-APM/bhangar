@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS public.offers (
 );
 
 -- 4. COMMENTS TABLE (Item Questions & Discussions)
+-- 4. COMMENTS TABLE (Item Questions & Discussions)
 CREATE TABLE IF NOT EXISTS public.comments (
   id TEXT PRIMARY KEY,
   item_id TEXT REFERENCES public.items(id) ON DELETE CASCADE,
@@ -77,6 +78,28 @@ CREATE TABLE IF NOT EXISTS public.comments (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 5. PROFILES TABLE (Persistent Cloud Resident Profiles)
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  name TEXT,
+  username TEXT,
+  phone TEXT,
+  tower TEXT,
+  society_id TEXT,
+  society_name TEXT,
+  avatar_url TEXT,
+  is_onboarded BOOLEAN DEFAULT FALSE,
+  rating NUMERIC DEFAULT 5.0,
+  deals_completed INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Add explicit user identity links to items and offers if not already present
+ALTER TABLE public.items ADD COLUMN IF NOT EXISTS seller_id UUID;
+ALTER TABLE public.offers ADD COLUMN IF NOT EXISTS buyer_id UUID;
+
 -- ==============================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- ==============================================================================
@@ -85,10 +108,12 @@ ALTER TABLE public.societies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.offers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read access to all users
 CREATE POLICY "Public Read Societies" ON public.societies FOR SELECT USING (true);
 CREATE POLICY "Public Insert Societies" ON public.societies FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update Societies" ON public.societies FOR UPDATE USING (true);
 
 CREATE POLICY "Public Read Items" ON public.items FOR SELECT USING (true);
 CREATE POLICY "Public Insert Items" ON public.items FOR INSERT WITH CHECK (true);
@@ -103,6 +128,10 @@ CREATE POLICY "Public Delete Offers" ON public.offers FOR DELETE USING (true);
 CREATE POLICY "Public Read Comments" ON public.comments FOR SELECT USING (true);
 CREATE POLICY "Public Insert Comments" ON public.comments FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Delete Comments" ON public.comments FOR DELETE USING (true);
+
+CREATE POLICY "Public Read Profiles" ON public.profiles FOR SELECT USING (true);
+CREATE POLICY "Public Insert Profiles" ON public.profiles FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update Profiles" ON public.profiles FOR UPDATE USING (true);
 
 -- ==============================================================================
 -- STORAGE BUCKET FOR LISTING IMAGES
@@ -128,3 +157,5 @@ WITH CHECK (bucket_id = 'listing-images');
 ALTER PUBLICATION supabase_realtime ADD TABLE public.items;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.offers;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.societies;

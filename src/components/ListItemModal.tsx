@@ -183,6 +183,7 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
       images: images.length > 0 ? images : ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'],
       hasVideoProof,
       videoProofNote: hasVideoProof ? 'Video of working condition available' : undefined,
+      sellerId: userProfile?.id,
       seller: {
         name: userProfile?.name || `Resident (${userTower})`,
         alias: userProfile?.name || `Resident (${userTower})`,
