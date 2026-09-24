@@ -38,6 +38,7 @@ import {
 import { ThriftItem, SellerOffer, ItemComment, SocietyInfo, UserProfile } from '../data/mockData';
 import { getAIResourceStats, clearAIUsageHistory, testGeminiConnection } from '../services/ai';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { testSupabaseConnection } from '../services/api';
 
 interface AdminDashboardProps {
   items: ThriftItem[];
@@ -95,6 +96,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isTestingPing, setIsTestingPing] = useState(false);
   const [pingResult, setPingResult] = useState<{ success: boolean; latencyMs: number; message: string; tokens?: number } | null>(null);
 
+  // Supabase Testing State
+  const [isTestingSupabase, setIsTestingSupabase] = useState(false);
+  const [supabaseResult, setSupabaseResult] = useState<{
+    isConfigured: boolean;
+    dbConnected: boolean;
+    storageConnected: boolean;
+    itemsCount: number;
+    latencyMs: number;
+    message: string;
+    error?: string;
+  } | null>(null);
+
   // Handle Login
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,6 +156,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setPingResult({ success: false, latencyMs: 0, message: err.message || 'Ping failed' });
     } finally {
       setIsTestingPing(false);
+    }
+  };
+
+  // Handle Live Supabase Connection Test
+  const handleTestSupabase = async () => {
+    setIsTestingSupabase(true);
+    setSupabaseResult(null);
+    try {
+      const res = await testSupabaseConnection();
+      setSupabaseResult(res);
+    } catch (err: any) {
+      setSupabaseResult({
+        isConfigured: false,
+        dbConnected: false,
+        storageConnected: false,
+        itemsCount: 0,
+        latencyMs: 0,
+        message: err.message || 'Supabase test failed'
+      });
+    } finally {
+      setIsTestingSupabase(false);
     }
   };
 
@@ -1562,7 +1596,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </p>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={handleTestSupabase}
+                  disabled={isTestingSupabase}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '6px',
+                    background: '#047857',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: isTestingSupabase ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <Database size={13} className={isTestingSupabase ? 'spin-icon' : ''} />
+                  <span>{isTestingSupabase ? 'Testing Supabase...' : 'Test Supabase DB & CDN'}</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={handleTestGeminiPing}
@@ -1603,6 +1659,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* Supabase Test Diagnostic Banner */}
+            {supabaseResult && (
+              <div style={{
+                marginBottom: '16px',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                background: supabaseResult.dbConnected && supabaseResult.storageConnected ? '#ECFDF5' : (supabaseResult.dbConnected ? '#FFFBEB' : '#FEF2F2'),
+                border: `1px solid ${supabaseResult.dbConnected && supabaseResult.storageConnected ? '#A7F3D0' : (supabaseResult.dbConnected ? '#FDE68A' : '#FECACA')}`,
+                color: supabaseResult.dbConnected && supabaseResult.storageConnected ? '#065F46' : (supabaseResult.dbConnected ? '#92400E' : '#991B1B'),
+                fontSize: '12.5px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {supabaseResult.dbConnected && supabaseResult.storageConnected ? <Check size={16} /> : <AlertCircle size={16} />}
+                  <span><strong>{supabaseResult.message}</strong></span>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', fontSize: '12px' }}>
+                  <span>DB Items: <strong>{supabaseResult.itemsCount}</strong></span>
+                  <span>Latency: <strong>{supabaseResult.latencyMs}ms</strong></span>
+                </div>
+              </div>
+            )}
 
             {/* Ping Healthcheck Banner */}
             {pingResult && (

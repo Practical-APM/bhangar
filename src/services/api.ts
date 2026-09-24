@@ -157,7 +157,7 @@ export async function createItemInDB(item: ThriftItem): Promise<ThriftItem> {
 
       dbItem = { ...item, images: uploadedImages };
 
-      const { error } = await supabase.from('items').insert({
+      const { error } = await supabase.from('items').upsert({
         id: dbItem.id,
         article_number: dbItem.articleNumber,
         ikea_style_name: dbItem.ikeaStyleName,
@@ -358,4 +358,84 @@ export function subscribeToRealtimeChanges(onItemChange?: () => void, onOfferCha
   return () => {
     if (supabase) supabase.removeChannel(channel);
   };
+}
+
+// Live diagnostic testing for Supabase PostgreSQL & Storage Bucket
+export async function testSupabaseConnection(): Promise<{
+  isConfigured: boolean;
+  dbConnected: boolean;
+  storageConnected: boolean;
+  itemsCount: number;
+  latencyMs: number;
+  message: string;
+  error?: string;
+}> {
+  const startTime = Date.now();
+  if (!isSupabaseConfigured() || !supabase) {
+    return {
+      isConfigured: false,
+      dbConnected: false,
+      storageConnected: false,
+      itemsCount: 0,
+      latencyMs: 0,
+      message: 'VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are not configured. Running in LocalStorage fallback mode.'
+    };
+  }
+
+  try {
+    // 1. Test database table read
+    const { data: dbData, error: dbError, count } = await supabase
+      .from('items')
+      .select('id', { count: 'exact', head: true });
+
+    if (dbError) {
+      return {
+        isConfigured: true,
+        dbConnected: false,
+        storageConnected: false,
+        itemsCount: 0,
+        latencyMs: Date.now() - startTime,
+        message: `Database connection failed: ${dbError.message}. Make sure supabase/schema.sql has been run in your Supabase SQL Editor.`,
+        error: dbError.message
+      };
+    }
+
+    // 2. Test storage bucket access
+    const { data: storageData, error: storageError } = await supabase.storage
+      .from('listing-images')
+      .list('', { limit: 1 });
+
+    const latency = Date.now() - startTime;
+
+    if (storageError) {
+      return {
+        isConfigured: true,
+        dbConnected: true,
+        storageConnected: false,
+        itemsCount: count || 0,
+        latencyMs: latency,
+        message: `Connected to Database (${count || 0} items), but Storage bucket 'listing-images' returned error: ${storageError.message}. Make sure the bucket is created in Supabase Dashboard -> Storage.`,
+        error: storageError.message
+      };
+    }
+
+    return {
+      isConfigured: true,
+      dbConnected: true,
+      storageConnected: true,
+      itemsCount: count || 0,
+      latencyMs: latency,
+      message: `Successfully connected to Supabase PostgreSQL (${count || 0} items) and Storage bucket 'listing-images' (CDN active)!`
+    };
+  } catch (err: any) {
+    return {
+      isConfigured: true,
+      dbConnected: false,
+      storageConnected: false,
+      itemsCount: 0,
+      latencyMs: Date.now() - startTime,
+      message: `Exception contacting Supabase: ${err.message || 'Network error'}`,
+      error: err.message
+    };
+  }
 }
