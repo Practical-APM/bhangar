@@ -196,20 +196,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
       {/* Card Body */}
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-        {/* Tower Tag */}
-        <div style={{ marginBottom: '5px' }}>
+        {/* Society & Tower Tag */}
+        <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
           <span style={{
-            display: 'inline-block',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
             background: isSameTower ? '#ECFDF5' : 'var(--bg-subtle)',
-            color: isSameTower ? '#047857' : 'var(--text-muted)',
+            color: isSameTower ? '#047857' : 'var(--text-secondary)',
             padding: '2px 8px',
             borderRadius: 'var(--radius-full)',
             fontSize: '10.5px',
-            fontWeight: isSameTower ? 600 : 400,
-            border: `1px solid ${isSameTower ? '#A7F3D0' : 'transparent'}`,
+            fontWeight: 500,
+            border: `1px solid ${isSameTower ? '#A7F3D0' : 'var(--border-hairline)'}`,
           }}>
-            {isSameTower ? `${item.seller.tower} · Same Building` : item.seller.tower}
+            <span style={{ fontWeight: 600 }}>{item.seller.society.split('(')[0].trim()}</span>
+            <span style={{ color: 'var(--text-muted)' }}>· {item.seller.tower}</span>
           </span>
+          {item.seller.city && (
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500 }}>
+              {item.seller.city}
+            </span>
+          )}
         </div>
 
         {/* Title */}

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { X, ShieldCheck, AlertCircle, Loader2, Phone, User, Mail, MapPin } from 'lucide-react';
+import { X, ShieldCheck, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { SocietyInfo, UserProfile } from '../data/mockData';
 import { isSupabaseConfigured, signInWithGoogleOAuth } from '../lib/supabase';
 
 interface GoogleOAuthModalProps {
   currentSociety: SocietyInfo;
+  societies?: SocietyInfo[];
   userProfile: UserProfile;
   promptReason?: string;
   onClose: () => void;
@@ -22,14 +23,6 @@ export const GoogleOAuthModal: React.FC<GoogleOAuthModalProps> = ({
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
 
-  // Manual/Email Resident Sign-in state
-  const [activeTab, setActiveTab] = useState<'quick' | 'details'>('quick');
-  const [fullName, setFullName] = useState(userProfile.name || '');
-  const [email, setEmail] = useState(userProfile.email || '');
-  const [phone, setPhone] = useState(userProfile.phone || '');
-  const [tower, setTower] = useState(userProfile.tower || currentSociety.towers[0] || 'Tower 1');
-  const [flatNumber, setFlatNumber] = useState(userProfile.flatNumber || '');
-
   const handleGoogleSignInClick = async () => {
     setOauthError(null);
     if (hasSupabase) {
@@ -42,37 +35,28 @@ export const GoogleOAuthModal: React.FC<GoogleOAuthModalProps> = ({
         setOauthError(errMsg);
       }
     } else {
-      // If Supabase not yet configured, switch directly to resident details form
-      setActiveTab('details');
+      // Offline/Local dev fallback: Simulate Google OAuth login with realistic resident data
+      // and immediately hand over to the post-Google onboarding modal
+      const demoGoogleProfile: UserProfile = {
+        name: 'Sakar Baxi',
+        username: 'sakar_baxi',
+        email: 'sakar.baxi@gmail.com',
+        phone: '',
+        authProvider: 'google',
+        googleAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80',
+        isLoggedIn: true,
+        isOnboarded: false, // forces the OnboardingModal to appear!
+        tower: '',
+        societyId: currentSociety.id,
+        societyName: currentSociety.name,
+        isVerified: true,
+        rating: 5.0,
+        dealsCompleted: 0,
+        joinedDate: 'Resident'
+      };
+      onLoginSuccess(demoGoogleProfile);
+      onClose();
     }
-  };
-
-  const handleResidentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim() && !phone.trim() && !fullName.trim()) return;
-
-    const displayName = fullName.trim() || (email ? email.split('@')[0] : 'Resident Neighbor');
-    const formattedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
-
-    const authenticatedProfile: UserProfile = {
-      name: formattedName,
-      email: email.trim(),
-      phone: phone.trim(),
-      authProvider: 'google',
-      googleAvatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(formattedName)}`,
-      isLoggedIn: true,
-      flatNumber: flatNumber.trim() || 'Floor resident',
-      tower: tower || currentSociety.towers[0] || 'Tower 1',
-      societyId: currentSociety.id,
-      societyName: currentSociety.name,
-      isVerified: true,
-      rating: 5.0,
-      dealsCompleted: 0,
-      joinedDate: 'Resident since 2024'
-    };
-
-    onLoginSuccess(authenticatedProfile);
-    onClose();
   };
 
   return (
@@ -80,26 +64,28 @@ export const GoogleOAuthModal: React.FC<GoogleOAuthModalProps> = ({
       className="modal-overlay" 
       onClick={onClose}
       style={{
-        background: 'rgba(0, 0, 0, 0.48)',
-        backdropFilter: 'blur(6px)',
+        background: 'rgba(0, 0, 0, 0.52)',
+        backdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '16px'
+        padding: '16px',
+        zIndex: 1000
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: '430px',
+          maxWidth: '400px',
           background: '#FFFFFF',
           border: '1px solid var(--border-hairline)',
-          borderRadius: '16px',
-          padding: '28px 24px',
+          borderRadius: '18px',
+          padding: '32px 28px 28px',
           color: 'var(--text-primary)',
-          boxShadow: '0 20px 48px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0,0,0,0.06)',
-          position: 'relative'
+          boxShadow: '0 24px 56px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0,0,0,0.06)',
+          position: 'relative',
+          textAlign: 'center'
         }}
       >
         {/* Close button */}
@@ -120,61 +106,41 @@ export const GoogleOAuthModal: React.FC<GoogleOAuthModalProps> = ({
           <X size={18} />
         </button>
 
-        {/* Brand Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
+        {/* Brand Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
           <img 
             src="/new_bhangar_logo.png" 
             alt="Bhangar.Space" 
-            style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
+            style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
           />
         </div>
 
-        {/* Mode Status Pill */}
+        {/* Trust Badge */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}>
-          {hasSupabase ? (
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              fontSize: '11px',
-              color: '#059669',
-              background: '#ECFDF5',
-              border: '1px solid #A7F3D0',
-              padding: '3px 9px',
-              borderRadius: '999px',
-              fontWeight: 500
-            }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }} />
-              Real Google OAuth Connected
-            </span>
-          ) : (
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              fontSize: '11px',
-              color: '#059669',
-              background: '#F0FDF4',
-              border: '1px solid #BBF7D0',
-              padding: '3px 9px',
-              borderRadius: '999px',
-              fontWeight: 500
-            }}>
-              <ShieldCheck size={12} color="#059669" />
-              Resident Sign In & Verification
-            </span>
-          )}
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            fontSize: '11px',
+            color: '#059669',
+            background: '#ECFDF5',
+            border: '1px solid #A7F3D0',
+            padding: '3px 10px',
+            borderRadius: '999px',
+            fontWeight: 500
+          }}>
+            <Sparkles size={11} color="#059669" />
+            Hyperlocal Resident Marketplace
+          </span>
         </div>
 
         {/* Title & Description */}
-        <div style={{ marginBottom: '18px', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 5px 0', letterSpacing: '-0.02em' }}>
-            Resident Sign In
-          </h2>
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.45 }}>
-            {promptReason || `Sign in to make offers, list items, and connect with neighbors in ${currentSociety.name.split('(')[0].trim()}.`}
-          </p>
-        </div>
+        <h2 style={{ fontSize: '21px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 7px 0', letterSpacing: '-0.02em' }}>
+          Welcome to Bhangar
+        </h2>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 24px 0', lineHeight: 1.45 }}>
+          {promptReason || 'Sign in with Google to explore verified neighbor deals, place bids, and list pre-loved goods.'}
+        </p>
 
         {/* Error Alert */}
         {oauthError && (
@@ -183,58 +149,56 @@ export const GoogleOAuthModal: React.FC<GoogleOAuthModalProps> = ({
             border: '1px solid #FCA5A5',
             borderRadius: '8px',
             padding: '12px 14px',
-            marginBottom: '16px',
+            marginBottom: '18px',
             color: '#991B1B',
             fontSize: '12px',
-            lineHeight: 1.45
+            lineHeight: 1.45,
+            textAlign: 'left'
           }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
               <AlertCircle size={16} color="#DC2626" style={{ flexShrink: 0, marginTop: '1px' }} />
               <div>
                 <strong style={{ display: 'block', fontWeight: 600 }}>Google Sign-In Notice</strong>
                 <span>{oauthError}</span>
               </div>
             </div>
-            <div style={{ fontSize: '11px', color: '#7F1D1D', marginTop: '6px', paddingLeft: '24px' }}>
-              Tip: In Supabase Dashboard, ensure Google Provider is enabled under <strong>Authentication → Providers → Google</strong>.
-            </div>
           </div>
         )}
 
-        {/* PRIMARY GOOGLE BUTTON */}
+        {/* THE ONLY LOGIN METHOD: CONTINUE WITH GOOGLE */}
         <button
           type="button"
           disabled={isRedirecting}
           onClick={handleGoogleSignInClick}
           style={{
             width: '100%',
-            padding: '11px 16px',
-            borderRadius: '8px',
+            padding: '13px 16px',
+            borderRadius: '10px',
             background: '#FFFFFF',
-            border: '1px solid #DADCE0',
+            border: '1.5px solid #DADCE0',
             color: '#3C4043',
-            fontSize: '13.5px',
-            fontWeight: 500,
+            fontSize: '14.5px',
+            fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '10px',
+            gap: '11px',
             cursor: isRedirecting ? 'wait' : 'pointer',
             opacity: isRedirecting ? 0.75 : 1,
-            boxShadow: '0 1px 2px rgba(60, 64, 67, 0.08)',
-            transition: 'background 0.15s ease, box-shadow 0.15s ease'
+            boxShadow: '0 2px 4px rgba(60, 64, 67, 0.1)',
+            transition: 'all 0.15s ease'
           }}
-          onMouseEnter={(e) => { if (!isRedirecting) e.currentTarget.style.background = '#F8F9FA'; }}
-          onMouseLeave={(e) => { if (!isRedirecting) e.currentTarget.style.background = '#FFFFFF'; }}
+          onMouseEnter={(e) => { if (!isRedirecting) { e.currentTarget.style.background = '#F8F9FA'; e.currentTarget.style.borderColor = '#BDC1C6'; } }}
+          onMouseLeave={(e) => { if (!isRedirecting) { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = '#DADCE0'; } }}
         >
           {isRedirecting ? (
             <>
-              <Loader2 size={18} className="animate-spin" color="#4285F4" />
+              <Loader2 size={19} className="animate-spin" color="#4285F4" />
               <span>Connecting to Google...</span>
             </>
           ) : (
             <>
-              <svg width="18" height="18" viewBox="0 0 24 24">
+              <svg width="20" height="20" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
                 <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24z"/>
                 <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
@@ -245,191 +209,48 @@ export const GoogleOAuthModal: React.FC<GoogleOAuthModalProps> = ({
           )}
         </button>
 
-        {/* Divider */}
+        {/* Security & Verification Benefits */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          margin: '18px 0 16px 0'
+          justifyContent: 'center',
+          gap: '6px',
+          marginTop: '20px',
+          fontSize: '11.5px',
+          color: '#15803D'
         }}>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border-hairline)' }} />
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'lowercase' }}>
-            or resident details
-          </span>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border-hairline)' }} />
+          <ShieldCheck size={14} color="#16a34a" />
+          <span>One-click Google sign in · No passwords to remember</span>
         </div>
 
-        {/* Resident Details Form with Contact Number */}
-        <form onSubmit={handleResidentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '11px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              Your Name
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Rahul Sharma"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px 9px 34px',
-                  borderRadius: '6px',
-                  background: 'var(--bg-canvas)',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                  fontSize: '13px',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
-              <User size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              WhatsApp / Mobile Number <span style={{ color: '#059669', fontWeight: 600 }}>*</span>
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="tel"
-                required
-                placeholder="+91 98765 43210"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px 9px 34px',
-                  borderRadius: '6px',
-                  background: 'var(--bg-canvas)',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                  fontSize: '13px',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
-              <Phone size={15} color="#059669" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-            </div>
-            <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', display: 'block', marginTop: '3px' }}>
-              Shared with buyer/seller when an offer is placed to coordinate pickup off-platform.
-            </span>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              Email Address
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px 9px 34px',
-                  borderRadius: '6px',
-                  background: 'var(--bg-canvas)',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                  fontSize: '13px',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
-              <Mail size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-            </div>
-          </div>
-
-          {/* Tower & Flat */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                Tower
-              </label>
-              <select
-                value={tower}
-                onChange={(e) => setTower(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 10px',
-                  borderRadius: '6px',
-                  background: 'var(--bg-canvas)',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                  fontSize: '12.5px',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              >
-                {currentSociety.towers.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                Flat No.
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. 802"
-                value={flatNumber}
-                onChange={(e) => setFlatNumber(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 10px',
-                  borderRadius: '6px',
-                  background: 'var(--bg-canvas)',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                  fontSize: '13px',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            style={{
-              width: '100%',
-              padding: '10px 16px',
-              borderRadius: '8px',
-              background: 'var(--text-primary)',
-              border: 'none',
-              color: '#FFFFFF',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              marginTop: '6px',
-              transition: 'opacity 0.15s ease'
-            }}
+        {/* Legal Links for Google OAuth Verification */}
+        <div style={{
+          marginTop: '16px',
+          paddingTop: '12px',
+          borderTop: '1px solid var(--border-hairline)',
+          fontSize: '11.5px',
+          color: 'var(--text-muted)',
+          lineHeight: 1.5,
+          textAlign: 'center'
+        }}>
+          By continuing, you agree to our{' '}
+          <a
+            href="/terms.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'var(--text-secondary)', textDecoration: 'underline', fontWeight: 500 }}
           >
-            Continue as Resident
-          </button>
-        </form>
-
-        {/* Back Link */}
-        <div style={{ textAlign: 'center', marginTop: '16px' }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-secondary)',
-              fontSize: '11.5px',
-              cursor: 'pointer'
-            }}
+            Terms of Service
+          </a>{' '}
+          and{' '}
+          <a
+            href="/privacy.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'var(--text-secondary)', textDecoration: 'underline', fontWeight: 500 }}
           >
-            ← Back to marketplace
-          </button>
+            Privacy Policy
+          </a>.
         </div>
       </div>
     </div>

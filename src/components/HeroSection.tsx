@@ -17,6 +17,13 @@ interface HeroSectionProps {
   savedCount: number;
   showOnlySaved: boolean;
   onToggleShowOnlySaved: () => void;
+  selectedScopeFilter?: 'all' | 'my_society';
+  onSelectScopeFilter?: (scope: 'all' | 'my_society') => void;
+  selectedCityFilter?: string;
+  onSelectCityFilter?: (city: string) => void;
+  availableCities?: string[];
+  totalAllItemsCount?: number;
+  mySocietyItemsCount?: number;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
@@ -33,7 +40,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   userTower,
   savedCount,
   showOnlySaved,
-  onToggleShowOnlySaved
+  onToggleShowOnlySaved,
+  selectedScopeFilter = 'all',
+  onSelectScopeFilter,
+  selectedCityFilter = 'all',
+  onSelectCityFilter,
+  availableCities = [],
+  totalAllItemsCount,
+  mySocietyItemsCount
 }) => {
   const categories = [
     { id: 'all', label: 'All Items' },
@@ -84,16 +98,18 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       boxSizing: 'border-box',
     }}>
       {/* Hero Showcase */}
-      <div style={{
-        background: 'linear-gradient(150deg, #FFFFFF 0%, #FAFAF8 40%, #F5F2EC 100%)',
-        border: '1px solid rgba(0, 0, 0, 0.05)',
-        borderRadius: '28px',
-        padding: '36px 36px 32px',
-        marginBottom: '24px',
-        boxShadow: '0 12px 40px -8px rgba(28, 25, 23, 0.08), 0 1px 3px rgba(0, 0, 0, 0.03)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
+      <div 
+        className="hero-card-container"
+        style={{
+          background: 'linear-gradient(150deg, #FFFFFF 0%, #FAFAF8 40%, #F5F2EC 100%)',
+          border: '1px solid rgba(0, 0, 0, 0.05)',
+          borderRadius: '28px',
+          marginBottom: '24px',
+          boxShadow: '0 12px 40px -8px rgba(28, 25, 23, 0.08), 0 1px 3px rgba(0, 0, 0, 0.03)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
         {/* Soft atmospheric ambient glow */}
         <div style={{
           position: 'absolute',
@@ -122,7 +138,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             </div>
 
             {/* Headline */}
-            <h1 className="hero-sub-animate" style={{
+            <h1 className="hero-sub-animate hero-main-heading" style={{
               fontSize: 'clamp(28px, 4.2vw, 38px)',
               fontWeight: 700,
               letterSpacing: '-0.035em',
@@ -438,11 +454,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
-        marginBottom: '14px',
+        marginBottom: '12px',
         flexWrap: 'wrap',
       }}>
         {/* Search Input */}
-        <div style={{ position: 'relative', flex: '1 1 260px', minWidth: '220px' }}>
+        <div style={{ position: 'relative', flex: '1 1 240px', minWidth: '200px' }}>
           <Search size={15} style={{
             position: 'absolute', left: '14px', top: '50%',
             transform: 'translateY(-50%)',
@@ -450,7 +466,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           }} />
           <input
             type="text"
-            placeholder="Search desks, monitors, microwaves, moving sales…"
+            placeholder="Search desks, appliances, items…"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             style={{
@@ -467,52 +483,161 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           />
         </div>
 
-        {/* Tower Filter — native select, custom-styled */}
-        <div style={{ position: 'relative', minWidth: '140px' }}>
-          <select
-            value={selectedTowerFilter}
-            onChange={(e) => onSelectTowerFilter(e.target.value)}
+        {/* Scope Switcher: All Societies vs My Society */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: '#FFFFFF',
+          border: '1px solid var(--border-hairline)',
+          borderRadius: '10px',
+          padding: '3px',
+          boxShadow: 'var(--shadow-subtle)',
+          boxSizing: 'border-box',
+          flexShrink: 0
+        }}>
+          <button
+            type="button"
+            onClick={() => onSelectScopeFilter && onSelectScopeFilter('all')}
             style={{
-              width: '100%',
-              padding: '10px 36px 10px 14px',
-              borderRadius: '10px',
-              border: '1px solid var(--border-hairline)',
-              background: '#FFFFFF',
-              fontSize: '12.5px',
-              fontWeight: 500,
-              color: 'var(--text-primary)',
-              outline: 'none',
+              padding: '6px 11px',
+              borderRadius: '8px',
+              fontSize: '11.5px',
+              fontWeight: selectedScopeFilter === 'all' ? 700 : 500,
+              background: selectedScopeFilter === 'all' ? 'var(--text-primary)' : 'transparent',
+              color: selectedScopeFilter === 'all' ? '#FFFFFF' : 'var(--text-secondary)',
+              border: 'none',
               cursor: 'pointer',
-              boxShadow: 'var(--shadow-subtle)',
-              appearance: 'none',
-              WebkitAppearance: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              transition: 'all 0.15s ease'
             }}
           >
-            <option value="all">All Towers</option>
-            <option value={userTower}>My Tower ({userTower})</option>
-            {currentSociety?.towers.filter(t => t !== userTower).map((tower) => (
-              <option key={tower} value={tower}>{tower}</option>
-            ))}
-          </select>
-          {/* Custom chevron icon */}
-          <span style={{
-            position: 'absolute', right: '14px', top: '50%',
-            transform: 'translateY(-50%)',
-            pointerEvents: 'none', color: 'var(--text-muted)', fontSize: '10px',
-          }}>▾</span>
+            <span>🌐 All</span>
+            <span style={{
+              fontSize: '10px',
+              opacity: 0.85,
+              background: selectedScopeFilter === 'all' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.06)',
+              padding: '1px 5px',
+              borderRadius: '999px'
+            }}>
+              {totalAllItemsCount ?? items.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSelectScopeFilter && onSelectScopeFilter('my_society')}
+            style={{
+              padding: '6px 11px',
+              borderRadius: '8px',
+              fontSize: '11.5px',
+              fontWeight: selectedScopeFilter === 'my_society' ? 700 : 500,
+              background: selectedScopeFilter === 'my_society' ? '#059669' : 'transparent',
+              color: selectedScopeFilter === 'my_society' ? '#FFFFFF' : 'var(--text-secondary)',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <span>📍 {currentSociety?.name.split('(')[0].trim() || 'My Hub'}</span>
+            <span style={{
+              fontSize: '10px',
+              opacity: 0.85,
+              background: selectedScopeFilter === 'my_society' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.06)',
+              padding: '1px 5px',
+              borderRadius: '999px'
+            }}>
+              {mySocietyItemsCount ?? items.filter(it => it.seller.society === currentSociety?.name).length}
+            </span>
+          </button>
         </div>
+
+        {/* Secondary Contextual Filter: City (if All) or Tower (if My Society) */}
+        {selectedScopeFilter === 'all' ? (
+          availableCities.length > 0 && (
+            <div style={{ position: 'relative', minWidth: '105px' }}>
+              <select
+                value={selectedCityFilter}
+                onChange={(e) => onSelectCityFilter && onSelectCityFilter(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 28px 9px 11px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-hairline)',
+                  background: '#FFFFFF',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  boxShadow: 'var(--shadow-subtle)',
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                }}
+              >
+                <option value="all">All Cities</option>
+                {availableCities.map((city) => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
+              <span style={{
+                position: 'absolute', right: '11px', top: '50%',
+                transform: 'translateY(-50%)',
+                pointerEvents: 'none', color: 'var(--text-muted)', fontSize: '9px',
+              }}>▾</span>
+            </div>
+          )
+        ) : (
+          <div style={{ position: 'relative', minWidth: '115px' }}>
+            <select
+              value={selectedTowerFilter}
+              onChange={(e) => onSelectTowerFilter(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 28px 9px 11px',
+                borderRadius: '10px',
+                border: '1px solid var(--border-hairline)',
+                background: '#FFFFFF',
+                fontSize: '12px',
+                fontWeight: 500,
+                color: 'var(--text-primary)',
+                outline: 'none',
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-subtle)',
+                appearance: 'none',
+                WebkitAppearance: 'none',
+              }}
+            >
+              <option value="all">All Towers</option>
+              <option value={userTower}>My Tower ({userTower})</option>
+              {currentSociety?.towers.filter(t => t !== userTower).map((tower) => (
+                <option key={tower} value={tower}>{tower}</option>
+              ))}
+            </select>
+            <span style={{
+              position: 'absolute', right: '11px', top: '50%',
+              transform: 'translateY(-50%)',
+              pointerEvents: 'none', color: 'var(--text-muted)', fontSize: '9px',
+            }}>▾</span>
+          </div>
+        )}
 
         {/* Saved Wishlist Toggle */}
         <button
+          type="button"
           onClick={onToggleShowOnlySaved}
           style={{
-            padding: '10px 16px',
+            padding: '9px 13px',
             borderRadius: '10px',
-            fontSize: '12.5px',
+            fontSize: '12px',
             fontWeight: 500,
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '5px',
             border: `1px solid ${showOnlySaved ? '#DC2626' : 'var(--border-hairline)'}`,
             background: showOnlySaved ? '#FEF2F2' : '#FFFFFF',
             color: showOnlySaved ? '#DC2626' : 'var(--text-secondary)',

@@ -71,13 +71,16 @@ export interface ItemComment {
 
 export interface UserProfile {
   name: string;
+  username?: string; // option to define username/alias
   email: string;
   phone?: string; // Contact mobile number (+91)
   authProvider: 'google' | 'guest';
   googleAvatar?: string;
+  customAvatar?: string; // option for custom profile photo
   isLoggedIn: boolean;
-  flatNumber: string;
-  tower: string;
+  isOnboarded?: boolean; // Completed post-auth onboarding profile
+  flatNumber?: string; // Optional (flat info not required)
+  tower: string; // Free-form tower/wing entered by user
   societyId: string;
   societyName: string;
   isVerified: boolean;
@@ -88,13 +91,16 @@ export interface UserProfile {
 
 export const INITIAL_USER_PROFILE: UserProfile = {
   name: '',
+  username: '',
   email: '',
   phone: '',
   authProvider: 'guest',
   googleAvatar: undefined,
+  customAvatar: undefined,
   isLoggedIn: false,
+  isOnboarded: false,
   flatNumber: '',
-  tower: 'Tower 4',
+  tower: '',
   societyId: 'dlf-phase-5',
   societyName: 'DLF Phase 5 (The Crest & Park Place)',
   isVerified: false,
@@ -265,6 +271,9 @@ export interface SocietyInfo {
   id: string;
   name: string;
   city: string;
+  area?: string;
+  lat?: number;
+  lng?: number;
   activeListingsCount: number;
   residentCount: number;
   towers: string[];
@@ -291,6 +300,9 @@ export const METRO_SOCIETIES: SocietyInfo[] = [
     id: 'dlf-phase-5',
     name: 'DLF Phase 5 (The Crest & Park Place)',
     city: 'Gurugram',
+    area: 'Golf Course Road / Phase 5',
+    lat: 28.4595,
+    lng: 77.0945,
     pincode: '122002',
     activeListingsCount: 0,
     residentCount: 1420,
@@ -301,6 +313,9 @@ export const METRO_SOCIETIES: SocietyInfo[] = [
     id: 'prestige-shantiniketan',
     name: 'Prestige Shantiniketan',
     city: 'Bengaluru',
+    area: 'Whitefield / ITPL',
+    lat: 12.9892,
+    lng: 77.7281,
     pincode: '560048',
     activeListingsCount: 0,
     residentCount: 3100,
@@ -311,6 +326,9 @@ export const METRO_SOCIETIES: SocietyInfo[] = [
     id: 'amanora-park-town',
     name: 'Amanora Park Town',
     city: 'Pune',
+    area: 'Hadapsar / Magarpatta',
+    lat: 18.5173,
+    lng: 73.9352,
     pincode: '411028',
     activeListingsCount: 0,
     residentCount: 2450,
@@ -321,6 +339,9 @@ export const METRO_SOCIETIES: SocietyInfo[] = [
     id: 'ats-greens',
     name: 'ATS Greens Village',
     city: 'Noida',
+    area: 'Sector 93A / Expressway',
+    lat: 28.5132,
+    lng: 77.3828,
     pincode: '201304',
     activeListingsCount: 0,
     residentCount: 1180,
@@ -331,12 +352,74 @@ export const METRO_SOCIETIES: SocietyInfo[] = [
     id: 'hiranandani-estate',
     name: 'Hiranandani Estate',
     city: 'Mumbai',
+    area: 'Thane West / Ghodbunder Road',
+    lat: 19.2562,
+    lng: 72.9734,
     pincode: '400607',
     activeListingsCount: 0,
     residentCount: 2900,
     isLive: true,
     towers: ['Rodas Enclave A', 'Rodas Enclave B', 'Canis', 'Pegasus']
+  },
+  {
+    id: 'my-home-bhooja',
+    name: 'My Home Bhooja',
+    city: 'Hyderabad',
+    area: 'Hitec City / Madhapur',
+    lat: 17.4385,
+    lng: 78.3752,
+    pincode: '500081',
+    activeListingsCount: 0,
+    residentCount: 1850,
+    isLive: true,
+    towers: ['Block A', 'Block B', 'Block C', 'Block D']
+  },
+  {
+    id: 'godrej-woodsman',
+    name: 'Godrej Woodsman Estate',
+    city: 'Bengaluru',
+    area: 'Hebbal / Bellary Road',
+    lat: 13.0489,
+    lng: 77.5925,
+    pincode: '560024',
+    activeListingsCount: 0,
+    residentCount: 1600,
+    isLive: true,
+    towers: ['Tower 1', 'Tower 2', 'Tower 3', 'Tower 4']
   }
 ];
 
+// Helper to compute distance between coordinates in km
+export function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Radius of Earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Helper to locate nearest society given user's latitude and longitude
+export function findNearestSociety(userLat: number, userLng: number, societies: SocietyInfo[] = METRO_SOCIETIES): { society: SocietyInfo; distanceKm: number } {
+  let closest = societies[0];
+  let minDistance = Infinity;
+
+  for (const soc of societies) {
+    if (soc.lat !== undefined && soc.lng !== undefined) {
+      const dist = getDistanceKm(userLat, userLng, soc.lat, soc.lng);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closest = soc;
+      }
+    }
+  }
+
+  return { society: closest, distanceKm: Math.round(minDistance * 10) / 10 };
+}
+
 export const INITIAL_THRIFT_ITEMS: ThriftItem[] = [];
+
+

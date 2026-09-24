@@ -41,13 +41,27 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           borderBottom: '1px solid var(--border-hairline)',
           paddingBottom: '12px'
         }}>
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.04em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              Resident Profile
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {userProfile.customAvatar || userProfile.googleAvatar ? (
+              <img
+                src={userProfile.customAvatar || userProfile.googleAvatar}
+                alt={userProfile.name}
+                style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-hairline)' }}
+              />
+            ) : null}
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.04em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Resident Profile
+              </div>
+              <h3 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>{userProfile.name || 'Resident'}</span>
+                {userProfile.username && (
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>
+                    @{userProfile.username}
+                  </span>
+                )}
+              </h3>
             </div>
-            <h3 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-              {userProfile.name}
-            </h3>
           </div>
           <button 
             onClick={onClose}
@@ -69,7 +83,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  {userProfile.tower} · Flat {userProfile.flatNumber}
+                  {userProfile.tower}{userProfile.flatNumber ? ` · Flat ${userProfile.flatNumber}` : ''}
                 </span>
                 <ShieldCheck size={16} color="#16a34a" />
               </div>

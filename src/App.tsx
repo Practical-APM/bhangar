@@ -52,15 +52,44 @@ function saveStorage<T>(key: string, value: T) {
   }
 }
 
+// Route /privacy and /terms if accessed directly by Google verification or user
+if (typeof window !== 'undefined') {
+  const path = window.location.pathname.toLowerCase().replace(/\/$/, '');
+  if (path === '/privacy' || path === '/privacy-policy') {
+    window.location.replace('/privacy.html');
+  } else if (path === '/terms' || path === '/terms-of-service') {
+    window.location.replace('/terms.html');
+  }
+}
+
 // Purge legacy mock demo data from localStorage if present
 if (typeof window !== 'undefined') {
   try {
     const existing = localStorage.getItem('bhangar_items');
-    if (existing && (existing.includes('item-1') || existing.includes('Green Soul') || existing.includes('Coway'))) {
-      localStorage.removeItem('bhangar_items');
-      localStorage.removeItem('bhangar_saved_ids');
-      localStorage.removeItem('bhangar_seller_offers');
-      localStorage.removeItem('bhangar_comments');
+    if (existing) {
+      const parsed = JSON.parse(existing);
+      if (Array.isArray(parsed)) {
+        const cleanItems = parsed.filter((it: any) => 
+          !it.id?.startsWith('item-') && 
+          !it.title?.toLowerCase().includes('markus') && 
+          !it.title?.toLowerCase().includes('dell 34') &&
+          !it.title?.toLowerCase().includes('green soul') &&
+          !it.title?.toLowerCase().includes('coway')
+        );
+        if (cleanItems.length !== parsed.length) {
+          localStorage.setItem('bhangar_items', JSON.stringify(cleanItems));
+        }
+      }
+    }
+    const existingOffers = localStorage.getItem('bhangar_seller_offers');
+    if (existingOffers) {
+      const parsedOffers = JSON.parse(existingOffers);
+      if (Array.isArray(parsedOffers)) {
+        const cleanOffers = parsedOffers.filter((o: any) => !o.itemId?.startsWith('item-'));
+        if (cleanOffers.length !== parsedOffers.length) {
+          localStorage.setItem('bhangar_seller_offers', JSON.stringify(cleanOffers));
+        }
+      }
     }
   } catch {}
 }
@@ -85,15 +114,23 @@ export function App() {
   const [userTower, setUserTower] = useState<string>(() => 
     loadStorage('bhangar_tower', 'Tower 4')
   );
-  const [items, setItems] = useState<ThriftItem[]>(() => 
-    loadStorage('bhangar_items', INITIAL_THRIFT_ITEMS)
-  );
+  const [items, setItems] = useState<ThriftItem[]>(() => {
+    const loaded = loadStorage<ThriftItem[]>('bhangar_items', INITIAL_THRIFT_ITEMS);
+    if (!Array.isArray(loaded)) return [];
+    return loaded.filter((it) => 
+      !it.id?.startsWith('item-') && 
+      !it.title?.toLowerCase().includes('markus') && 
+      !it.title?.toLowerCase().includes('dell 34')
+    );
+  });
   const [comments, setComments] = useState<ItemComment[]>(() => 
     loadStorage('bhangar_comments', INITIAL_COMMENTS)
   );
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedTowerFilter, setSelectedTowerFilter] = useState<string>('all');
+  const [selectedScopeFilter, setSelectedScopeFilter] = useState<'all' | 'my_society'>('all');
+  const [selectedCityFilter, setSelectedCityFilter] = useState<string>('all');
   const [savedIds, setSavedIds] = useState<Set<string>>(() => {
     const raw = loadStorage<string[]>('bhangar_saved_ids', []);
     return new Set(raw);
@@ -125,10 +162,10 @@ export function App() {
   useEffect(() => saveStorage('bhangar_saved_ids', Array.from(savedIds)), [savedIds]);
   useEffect(() => saveStorage('bhangar_seller_offers', sellerOffers), [sellerOffers]);
 
-  // Initial fetch from backend if connected + Realtime subscriptions
+  // Initial fetch from backend if connected + Realtime subscriptions (All societies feed)
   useEffect(() => {
-    fetchItemsFromDB(currentSociety.id).then((fetched) => {
-      if (fetched) setItems(fetched);
+    fetchItemsFromDB().then((fetched) => {
+      if (fetched && fetched.length > 0) setItems(fetched);
     });
     fetchOffersFromDB().then((offers) => {
       if (offers) setSellerOffers(offers);
@@ -136,8 +173,8 @@ export function App() {
 
     const unsubscribe = subscribeToRealtimeChanges(
       () => {
-        fetchItemsFromDB(currentSociety.id).then((refetched) => {
-          if (refetched) setItems(refetched);
+        fetchItemsFromDB().then((refetched) => {
+          if (refetched && refetched.length > 0) setItems(refetched);
         });
       },
       () => {
@@ -148,7 +185,7 @@ export function App() {
     );
 
     return () => unsubscribe();
-  }, [currentSociety.id]);
+  }, []);
 
   // Core Modals
   const [activeOfferItem, setActiveOfferItem] = useState<ThriftItem | null>(null);
@@ -173,23 +210,43 @@ export function App() {
       const fullName = meta.full_name || meta.name || user.email?.split('@')[0] || 'Resident';
       const avatar = meta.avatar_url || meta.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}`;
 
-      setUserProfile((prev) => ({
-        ...prev,
-        name: fullName,
-        email: user.email || prev.email,
-        authProvider: 'google',
-        googleAvatar: avatar,
-        isLoggedIn: true,
-        tower: prev.tower || currentSociety.towers[0] || 'Tower 4',
-        societyId: currentSociety.id,
-        societyName: currentSociety.name,
-        isVerified: true,
-      }));
+      const saved = loadStorage<UserProfile | null>('bhangar_user_profile', null);
+      const isAlreadyOnboarded = Boolean(
+        saved && 
+        saved.isLoggedIn && 
+        saved.email === user.email && 
+        saved.isOnboarded && 
+        saved.phone && 
+        saved.tower
+      );
 
-      setUserTower((prev) => prev || currentSociety.towers[0] || 'Tower 4');
+      const baseProfile: UserProfile = {
+        ...(saved || INITIAL_USER_PROFILE),
+        name: (saved && saved.name) || fullName,
+        username: (saved && saved.username) || user.email?.split('@')[0] || fullName.toLowerCase().replace(/\s+/g, '_'),
+        email: user.email || (saved ? saved.email : ''),
+        authProvider: 'google',
+        googleAvatar: (saved && saved.googleAvatar) || avatar,
+        customAvatar: saved?.customAvatar,
+        isLoggedIn: true,
+        isOnboarded: isAlreadyOnboarded,
+        tower: (saved && saved.tower) || '',
+        societyId: (saved && saved.societyId) || currentSociety.id,
+        societyName: (saved && saved.societyName) || currentSociety.name,
+        phone: (saved && saved.phone) || '',
+        isVerified: true,
+      };
+
+      setUserProfile(baseProfile);
+      if (saved?.tower) {
+        setUserTower(saved.tower);
+      }
       setShowGoogleModal(false);
 
-      if (pendingAction) {
+      if (!isAlreadyOnboarded) {
+        // Automatically pop up Onboarding modal to complete profile!
+        setShowOnboardingModal(true);
+      } else if (pendingAction) {
         const action = pendingAction;
         setPendingAction(null);
         setTimeout(() => action(), 100);
@@ -220,7 +277,7 @@ export function App() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [currentSociety.id, currentSociety.name, currentSociety.towers, pendingAction]);
+  }, [currentSociety.id, currentSociety.name, pendingAction]);
 
 
   const requireAuth = (action: () => void, promptReason: string) => {
@@ -237,10 +294,20 @@ export function App() {
   const myItems = items.filter((it) => it.seller.tower === userTower);
   const pendingOffersCount = sellerOffers.filter((o) => o.status === 'pending').length;
 
-  // Filtering logic
+  // Filtering logic (Feed shows items from all societies by default, with city and society filters)
   const filteredItems = items.filter((item) => {
     // Saved filter
     if (showOnlySaved && !savedIds.has(item.id)) return false;
+
+    // Scope / Society filter
+    if (selectedScopeFilter === 'my_society') {
+      if (item.seller.society !== currentSociety.name) return false;
+    }
+
+    // City filter
+    if (selectedCityFilter !== 'all') {
+      if (item.seller.city.toLowerCase() !== selectedCityFilter.toLowerCase()) return false;
+    }
 
     // Search query match
     if (searchQuery.trim()) {
@@ -248,7 +315,8 @@ export function App() {
       const matchTitle = item.title.toLowerCase().includes(q);
       const matchDesc = item.description.toLowerCase().includes(q);
       const matchTag = item.tags.some(t => t.toLowerCase().includes(q));
-      if (!matchTitle && !matchDesc && !matchTag) return false;
+      const matchLoc = item.seller.society.toLowerCase().includes(q) || item.seller.city.toLowerCase().includes(q);
+      if (!matchTitle && !matchDesc && !matchTag && !matchLoc) return false;
     }
 
     // Category match
@@ -279,20 +347,6 @@ export function App() {
     const defaultTower = soc.towers[0] || 'Tower 1';
     setUserTower(defaultTower);
     setSelectedTowerFilter('all');
-
-    // Adapt items to reflect the selected society and towers smoothly
-    setItems((prev) =>
-      prev.map((it, idx) => ({
-        ...it,
-        seller: {
-          ...it.seller,
-          society: soc.name,
-          city: soc.city,
-          tower: soc.towers[idx % soc.towers.length] || soc.towers[0]
-        },
-        locationNote: `${soc.towers[idx % soc.towers.length] || soc.towers[0]} · Handover lobby`
-      }))
-    );
   };
 
   const handleRequestSociety = (req: SocietyRequest) => {
@@ -312,8 +366,10 @@ export function App() {
 
   const handleResetFilters = () => {
     setSelectedCategory('all');
-    setSearchQuery('');
+    setSelectedScopeFilter('all');
+    setSelectedCityFilter('all');
     setSelectedTowerFilter('all');
+    setSearchQuery('');
     setShowOnlySaved(false);
   };
 
@@ -394,6 +450,16 @@ export function App() {
   const handleSaveProfile = (updated: UserProfile) => {
     setUserProfile(updated);
     setUserTower(updated.tower);
+    const soc = societies.find((s) => s.id === updated.societyId);
+    if (soc) {
+      setCurrentSociety(soc);
+    }
+    setShowOnboardingModal(false);
+    if (pendingAction) {
+      const action = pendingAction;
+      setPendingAction(null);
+      setTimeout(() => action(), 100);
+    }
   };
 
   const handleAddComment = (itemId: string, text: string) => {
@@ -415,6 +481,10 @@ export function App() {
   const handleGoogleLoginSuccess = (profile: UserProfile) => {
     setUserProfile(profile);
     setUserTower(profile.tower);
+    const soc = societies.find((s) => s.id === profile.societyId);
+    if (soc) {
+      setCurrentSociety(soc);
+    }
     setShowGoogleModal(false);
     if (pendingAction) {
       const action = pendingAction;
@@ -503,6 +573,20 @@ export function App() {
             setShowOnlySaved(!showOnlySaved);
           }
         }}
+        selectedScopeFilter={selectedScopeFilter}
+        onSelectScopeFilter={(scope) => {
+          setSelectedScopeFilter(scope);
+          if (scope === 'all') {
+            setSelectedTowerFilter('all');
+          } else {
+            setSelectedCityFilter('all');
+          }
+        }}
+        selectedCityFilter={selectedCityFilter}
+        onSelectCityFilter={setSelectedCityFilter}
+        availableCities={Array.from(new Set(items.map(it => it.seller.city).filter(Boolean)))}
+        totalAllItemsCount={items.length}
+        mySocietyItemsCount={items.filter(it => it.seller.society === currentSociety.name).length}
       />
 
       {/* Main Masonry Area */}
@@ -510,10 +594,11 @@ export function App() {
         width: '100%',
         maxWidth: '1360px',
         margin: '0 auto',
-        padding: '0 24px 60px',
+        padding: '0 clamp(14px, 3vw, 24px) 60px',
         flex: 1,
         boxSizing: 'border-box'
       }}>
+
         {/* Results Metadata */}
         <div style={{
           display: 'flex',
@@ -522,16 +607,22 @@ export function App() {
           marginBottom: '18px',
           fontSize: '12px',
           color: 'var(--text-muted)',
-          paddingTop: '4px',
+          paddingTop: '2px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '13px' }}>{filteredItems.length}</span>
-            <span>items in</span>
-            <span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>{currentSociety.name.split('(')[0].trim()}</span>
+            <span>items</span>
+            {selectedScopeFilter === 'my_society' ? (
+              <span>in <strong style={{ color: 'var(--text-primary)' }}>{currentSociety.name.split('(')[0].trim()}</strong></span>
+            ) : selectedCityFilter !== 'all' ? (
+              <span>in <strong style={{ color: 'var(--text-primary)' }}>{selectedCityFilter}</strong></span>
+            ) : (
+              <span>across all societies</span>
+            )}
             {selectedTowerFilter !== 'all' && <span>· {selectedTowerFilter}</span>}
             {showOnlySaved && <span>· Saved only</span>}
           </div>
-          {(selectedCategory !== 'all' || selectedTowerFilter !== 'all' || searchQuery || showOnlySaved) && (
+          {(selectedCategory !== 'all' || selectedTowerFilter !== 'all' || selectedScopeFilter !== 'all' || selectedCityFilter !== 'all' || searchQuery || showOnlySaved) && (
             <button
               onClick={handleResetFilters}
               style={{
@@ -655,7 +746,7 @@ export function App() {
       {/* Footer */}
       <footer style={{
         borderTop: '1px solid var(--border-hairline)',
-        padding: '14px 24px',
+        padding: '16px 24px',
         color: 'var(--text-muted)',
         fontSize: '11.5px',
         background: 'var(--bg-surface)',
@@ -668,26 +759,46 @@ export function App() {
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '8px',
+          gap: '12px',
         }}>
-          <span>
+          <div>
             <strong style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Bhangar.Space</strong>
             <span style={{ margin: '0 6px', color: 'var(--border-subtle)' }}>·</span>
-            <span style={{ color: 'var(--text-muted)' }}>Tenant moving liquidation &amp; cheap finds. No BS.</span>
-          </span>
-          <button
-            onClick={() => setShowSocietyModal(true)}
-            style={{
-              background: 'none', border: 'none',
-              color: 'var(--text-muted)',
-              textDecoration: 'underline',
-              textUnderlineOffset: '2px',
-              fontSize: '11.5px',
-              cursor: 'pointer', padding: 0,
-            }}
-          >
-            + Add your society
-          </button>
+            <span>Hyperlocal resident marketplace for moving tenants.</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            <a
+              href="/privacy.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--text-muted)', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+            >
+              Privacy Policy
+            </a>
+            <a
+              href="/terms.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--text-muted)', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+            >
+              Terms of Service
+            </a>
+            <button
+              onClick={() => setShowSocietyModal(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                textDecoration: 'underline',
+                textUnderlineOffset: '2px',
+                fontSize: '11.5px',
+                cursor: 'pointer',
+                padding: 0,
+              }}
+            >
+              + Add your society
+            </button>
+          </div>
         </div>
       </footer>
 
@@ -808,6 +919,7 @@ export function App() {
       {showOnboardingModal && (
         <OnboardingModal
           currentSociety={currentSociety}
+          societies={societies}
           userProfile={userProfile}
           onClose={() => setShowOnboardingModal(false)}
           onSaveProfile={handleSaveProfile}
@@ -818,6 +930,7 @@ export function App() {
       {showGoogleModal && (
         <GoogleOAuthModal
           currentSociety={currentSociety}
+          societies={societies}
           userProfile={userProfile}
           promptReason={authPromptReason}
           onClose={() => {

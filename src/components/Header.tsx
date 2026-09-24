@@ -266,9 +266,9 @@ export const Header: React.FC<HeaderProps> = ({
               }}
               title="View resident profile & account settings"
             >
-              {userProfile.googleAvatar ? (
+              {userProfile.customAvatar || userProfile.googleAvatar ? (
                 <img
-                  src={userProfile.googleAvatar}
+                  src={userProfile.customAvatar || userProfile.googleAvatar}
                   alt={userProfile.name}
                   style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }}
                 />
@@ -288,10 +288,10 @@ export const Header: React.FC<HeaderProps> = ({
                   ✓
                 </div>
               )}
-              <span>{userProfile.name ? userProfile.name.split(' ')[0] : 'Resident'}</span>
-              {userProfile.flatNumber && (
+              <span>{userProfile.username ? `@${userProfile.username}` : (userProfile.name ? userProfile.name.split(' ')[0] : 'Resident')}</span>
+              {userTower && (
                 <span className="hide-on-mobile" style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: 500 }}>
-                  · {userTower.replace('Tower ', 'T')}-{userProfile.flatNumber}
+                  · {userTower.replace('Tower ', 'T')}{userProfile.flatNumber ? `-${userProfile.flatNumber}` : ''}
                 </span>
               )}
             </button>
@@ -473,20 +473,20 @@ export const Header: React.FC<HeaderProps> = ({
               }}
               title="Resident profile"
             >
-              {userProfile.googleAvatar ? (
+              {userProfile.customAvatar || userProfile.googleAvatar ? (
                 <img
-                  src={userProfile.googleAvatar}
+                  src={userProfile.customAvatar || userProfile.googleAvatar}
                   alt={userProfile.name}
-                  style={{ width: '15px', height: '15px', borderRadius: '50%', objectFit: 'cover' }}
+                  style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }}
                 />
               ) : (
                 <div style={{
-                  width: '15px',
-                  height: '15px',
+                  width: '18px',
+                  height: '18px',
                   borderRadius: '50%',
                   background: '#059669',
                   color: '#FFFFFF',
-                  fontSize: '9px',
+                  fontSize: '10px',
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
@@ -495,7 +495,7 @@ export const Header: React.FC<HeaderProps> = ({
                   ✓
                 </div>
               )}
-              <span>{userProfile.name ? userProfile.name.split(' ')[0] : 'Resident'}</span>
+              <span className="hide-on-mobile" style={{ marginLeft: '2px' }}>{userProfile.username ? `@${userProfile.username}` : (userProfile.name ? userProfile.name.split(' ')[0] : 'Resident')}</span>
             </button>
           )}
 
@@ -609,9 +609,9 @@ export const Header: React.FC<HeaderProps> = ({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  {userProfile.googleAvatar ? (
+                  {userProfile.customAvatar || userProfile.googleAvatar ? (
                     <img
-                      src={userProfile.googleAvatar}
+                      src={userProfile.customAvatar || userProfile.googleAvatar}
                       alt={userProfile.name}
                       style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
                     />
@@ -634,7 +634,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {userProfile.name}
+                        {userProfile.name || userProfile.username}
                       </span>
                       <span style={{
                         fontSize: '9.5px',
@@ -648,7 +648,7 @@ export const Header: React.FC<HeaderProps> = ({
                       </span>
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      {userTower} · Flat {userProfile.flatNumber}
+                      {userTower}{userProfile.flatNumber ? ` · Flat ${userProfile.flatNumber}` : ''}
                     </div>
                   </div>
                 </div>

@@ -390,13 +390,13 @@ a {
   }
 
   .society-trigger-btn {
-    max-width: 105px !important;
-    padding: 4px 7px 4px 6px !important;
-    font-size: 11px !important;
+    max-width: 155px !important;
+    padding: 5px 9px 5px 7px !important;
+    font-size: 11.5px !important;
   }
 
   .society-trigger-label {
-    max-width: 75px !important;
+    max-width: 125px !important;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -474,6 +474,25 @@ a {
   .hero-grid {
     grid-template-columns: 1fr;
     gap: 24px;
+  }
+}
+
+.hero-card-container {
+  padding: 36px 36px 32px;
+}
+
+@media (max-width: 768px) {
+  .hero-card-container {
+    padding: 20px 16px 18px !important;
+    border-radius: 20px !important;
+  }
+
+  .hero-main-heading {
+    font-size: 22px !important;
+    line-height: 1.22 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    letter-spacing: -0.025em !important;
   }
 }
 

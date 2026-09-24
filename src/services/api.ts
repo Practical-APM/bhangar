@@ -106,19 +106,23 @@ export async function fetchItemsFromDB(societyId?: string): Promise<ThriftItem[]
       }
       const { data, error } = await query;
       if (!error && data) {
-        return data.map(mapRowToItem);
+        return data
+          .filter((r: any) => !r.id?.startsWith('item-') && !r.title?.toLowerCase().includes('markus'))
+          .map(mapRowToItem);
       }
     } catch (e) {
       console.warn('[Supabase] Failed to fetch items, using local fallback:', e);
     }
   }
 
-  // LocalStorage / Seed fallback
+  // LocalStorage fallback (ignoring mock items)
   try {
     const local = localStorage.getItem('bhangar_items');
     if (local) {
       const parsed = JSON.parse(local);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) {
+        return parsed.filter((it: any) => !it.id?.startsWith('item-') && !it.title?.toLowerCase().includes('markus'));
+      }
     }
   } catch {}
   return INITIAL_THRIFT_ITEMS;
