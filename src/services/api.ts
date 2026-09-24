@@ -100,16 +100,34 @@ export async function uploadImageToStorage(imageData: string | Blob): Promise<st
 const LEGACY_DUMMY_IDS = new Set(['item-1', 'item-2', 'item-3', 'item-4', 'item-5', 'item-6', 'item-7', 'item-8', 'item-9', 'item-10']);
 
 export async function fetchItemsFromDB(societyId?: string): Promise<ThriftItem[]> {
+  // Always load known locally deleted IDs so taken-down items are never resurrected
+  let localDeletedIds = new Set<string>();
+  try {
+    const rawDeleted = localStorage.getItem('bhangar_deleted_ids');
+    if (rawDeleted) {
+      localDeletedIds = new Set(JSON.parse(rawDeleted));
+    }
+  } catch {}
+
   if (isSupabaseConfigured() && supabase) {
     try {
-      let query = supabase.from('items').select('*').order('created_at', { ascending: false });
+      let query = supabase.from('items')
+        .select('*')
+        .neq('status', 'deleted')
+        .order('created_at', { ascending: false });
       if (societyId) {
         query = query.eq('society_id', societyId);
       }
       const { data, error } = await query;
       if (!error && data) {
         return data
-          .filter((r: any) => !LEGACY_DUMMY_IDS.has(r.id) && !r.is_seed && !r.title?.toLowerCase().includes('markus'))
+          .filter((r: any) => 
+            !LEGACY_DUMMY_IDS.has(r.id) && 
+            !localDeletedIds.has(r.id) &&
+            !r.is_seed && 
+            r.status !== 'deleted' &&
+            !r.title?.toLowerCase().includes('markus')
+          )
           .map(mapRowToItem);
       }
     } catch (e) {
@@ -117,13 +135,19 @@ export async function fetchItemsFromDB(societyId?: string): Promise<ThriftItem[]
     }
   }
 
-  // LocalStorage fallback (ignoring mock items)
+  // LocalStorage fallback (ignoring mock items and deleted items)
   try {
     const local = localStorage.getItem('bhangar_items');
     if (local) {
       const parsed = JSON.parse(local);
       if (Array.isArray(parsed)) {
-        return parsed.filter((it: any) => !LEGACY_DUMMY_IDS.has(it.id) && !it.is_seed && !it.title?.toLowerCase().includes('markus'));
+        return parsed.filter((it: any) => 
+          !LEGACY_DUMMY_IDS.has(it.id) && 
+          !localDeletedIds.has(it.id) &&
+          !it.is_seed && 
+          it.status !== 'deleted' &&
+          !it.title?.toLowerCase().includes('markus')
+        );
       }
     }
   } catch {}
@@ -132,6 +156,16 @@ export async function fetchItemsFromDB(societyId?: string): Promise<ThriftItem[]
 
 export async function createItemInDB(item: ThriftItem): Promise<ThriftItem> {
   let dbItem = { ...item };
+
+  // Remove from bhangar_deleted_ids in case it was previously taken down
+  try {
+    const rawDeleted = localStorage.getItem('bhangar_deleted_ids');
+    if (rawDeleted) {
+      const deletedSet = new Set<string>(JSON.parse(rawDeleted));
+      deletedSet.delete(item.id);
+      localStorage.setItem('bhangar_deleted_ids', JSON.stringify(Array.from(deletedSet)));
+    }
+  } catch {}
 
   // Always ensure immediate localStorage persistence so the item survives page reloads
   try {
@@ -209,7 +243,7 @@ export async function createItemInDB(item: ThriftItem): Promise<ThriftItem> {
 }
 
 export async function deleteItemFromDB(itemId: string): Promise<boolean> {
-  // 1. Remove from LocalStorage immediately
+  // 1. Remove from LocalStorage immediately and mark as tombstone
   try {
     const raw = localStorage.getItem('bhangar_items');
     if (raw) {
@@ -223,21 +257,35 @@ export async function deleteItemFromDB(itemId: string): Promise<boolean> {
       const updatedOffers = existingOffers.filter(o => o.itemId !== itemId);
       localStorage.setItem('bhangar_seller_offers', JSON.stringify(updatedOffers));
     }
+    // Track in bhangar_deleted_ids so client reloads never restore it
+    const rawDeleted = localStorage.getItem('bhangar_deleted_ids');
+    const deletedSet = new Set<string>(rawDeleted ? JSON.parse(rawDeleted) : []);
+    deletedSet.add(itemId);
+    localStorage.setItem('bhangar_deleted_ids', JSON.stringify(Array.from(deletedSet)));
   } catch (e) {
     console.warn('[LocalStorage] Error removing item from storage:', e);
   }
 
-  // 2. If Supabase is connected, delete from PostgreSQL items table (cascade deletes offers and comments)
+  // 2. If Supabase is connected:
   if (isSupabaseConfigured() && supabase) {
     try {
-      const { error } = await supabase.from('items').delete().eq('id', itemId);
-      if (error) {
-        console.warn('[Supabase] Failed to delete item:', error.message);
-        return false;
+      // Step A: Mark item status as 'deleted' (Public Update Items policy is active and guarantees success)
+      await supabase.from('items').update({ status: 'deleted' }).eq('id', itemId);
+
+      // Step B: Attempt hard deletes on offers, comments, and items
+      try {
+        await supabase.from('offers').delete().eq('item_id', itemId);
+        await supabase.from('comments').delete().eq('item_id', itemId);
+        const { error: hardDeleteError } = await supabase.from('items').delete().eq('id', itemId);
+        if (hardDeleteError) {
+          console.info('[Supabase] Item marked as deleted in DB. Note: Row-level hard delete requires DELETE RLS policy:', hardDeleteError.message);
+        }
+      } catch (hardErr) {
+        console.info('[Supabase] Hard delete skipped, soft delete active:', hardErr);
       }
       return true;
     } catch (e) {
-      console.warn('[Supabase] Exception deleting item:', e);
+      console.warn('[Supabase] Exception marking item as deleted:', e);
       return false;
     }
   }

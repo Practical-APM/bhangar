@@ -167,9 +167,13 @@ export function App() {
   const [items, setItems] = useState<ThriftItem[]>(() => {
     const loaded = loadStorage<ThriftItem[]>('bhangar_items', INITIAL_THRIFT_ITEMS);
     if (!Array.isArray(loaded)) return [];
+    const deletedRaw = loadStorage<string[]>('bhangar_deleted_ids', []);
+    const deletedSet = new Set(deletedRaw);
     return loaded.filter((it) => 
       !LEGACY_DUMMY_ITEM_IDS.has(it.id) && 
+      !deletedSet.has(it.id) &&
       !it.is_seed &&
+      it.status !== 'deleted' &&
       !it.title?.toLowerCase().includes('markus') && 
       !it.title?.toLowerCase().includes('dell 34')
     );
@@ -247,7 +251,7 @@ export function App() {
   // Initial fetch from backend if connected + Realtime subscriptions (All societies feed)
   useEffect(() => {
     fetchItemsFromDB().then((fetched) => {
-      if (fetched && fetched.length > 0) setItems(fetched);
+      if (fetched) setItems(fetched);
     });
     fetchOffersFromDB().then((offers) => {
       if (offers) setSellerOffers(offers);
@@ -256,7 +260,7 @@ export function App() {
     const unsubscribe = subscribeToRealtimeChanges(
       () => {
         fetchItemsFromDB().then((refetched) => {
-          if (refetched && refetched.length > 0) setItems(refetched);
+          if (refetched) setItems(refetched);
         });
       },
       () => {

@@ -93,13 +93,16 @@ CREATE POLICY "Public Insert Societies" ON public.societies FOR INSERT WITH CHEC
 CREATE POLICY "Public Read Items" ON public.items FOR SELECT USING (true);
 CREATE POLICY "Public Insert Items" ON public.items FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Update Items" ON public.items FOR UPDATE USING (true);
+CREATE POLICY "Public Delete Items" ON public.items FOR DELETE USING (true);
 
 CREATE POLICY "Public Read Offers" ON public.offers FOR SELECT USING (true);
 CREATE POLICY "Public Insert Offers" ON public.offers FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Update Offers" ON public.offers FOR UPDATE USING (true);
+CREATE POLICY "Public Delete Offers" ON public.offers FOR DELETE USING (true);
 
 CREATE POLICY "Public Read Comments" ON public.comments FOR SELECT USING (true);
 CREATE POLICY "Public Insert Comments" ON public.comments FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Delete Comments" ON public.comments FOR DELETE USING (true);
 
 -- ==============================================================================
 -- STORAGE BUCKET FOR LISTING IMAGES

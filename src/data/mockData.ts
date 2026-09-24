@@ -36,7 +36,7 @@ export interface ThriftItem {
   isMovingOut: boolean;
   movingOutDate?: string;
   bottomLinePrice: number;
-  status: 'available' | 'held' | 'sold';
+  status: 'available' | 'held' | 'sold' | 'deleted';
   heldBy?: string;
   tags: string[];
   listedAgo: string;
