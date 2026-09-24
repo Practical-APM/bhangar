@@ -179,7 +179,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               margin: '0 0 22px 0',
               maxWidth: '520px',
             }}>
-              A simple marketplace for residents moving in or out. Buy second-hand furniture and appliances for less, or sell what you no longer need before moving day—handover right in your tower elevator with no packaging needed.
+              Buy and sell pre-owned furniture, appliances, and home essentials directly with your neighbors. Quick handovers within your society, with no packing or shipping required.
             </p>
 
             {/* CTA Buttons */}
@@ -443,7 +443,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <span style={{ color: 'var(--border-subtle)' }}>·</span>
               <span>Fast 24h moving sales</span>
               <span style={{ color: 'var(--border-subtle)' }}>·</span>
-              <span>Elevator handovers only</span>
+              <span>No packing or shipping</span>
             </div>
           </div>
         </div>
