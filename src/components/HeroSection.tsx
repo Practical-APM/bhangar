@@ -146,8 +146,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               lineHeight: 1.15,
               margin: '0 0 12px 0',
             }}>
-              Moving in or moving out?<br />
-              Buy &amp; sell with your neighbors.
+              One neighbor’s clutter,<br />
+              another neighbor’s find.
             </h1>
 
             {/* Rotating highlight text */}
