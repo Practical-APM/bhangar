@@ -11,6 +11,8 @@ import { ProfileModal } from './components/ProfileModal';
 import { GoogleOAuthModal } from './components/GoogleOAuthModal';
 import { WishlistModal } from './components/WishlistModal';
 import { SocietyModal } from './components/SocietyModal';
+import { AdminDashboard } from './components/AdminDashboard';
+import { Analytics } from '@vercel/analytics/react';
 import { 
   METRO_SOCIETIES, 
   DEFAULT_SOCIETY,
@@ -175,6 +177,37 @@ export function App() {
     loadStorage('bhangar_seller_offers', INITIAL_SELLER_OFFERS)
   );
   const [showSellerModal, setShowSellerModal] = useState<boolean>(false);
+
+  // Admin Route state (/admin or #/admin)
+  const [isAdminRoute, setIsAdminRoute] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname.toLowerCase().replace(/\/$/, '');
+    const hash = window.location.hash.toLowerCase();
+    return path === '/admin' || hash === '#/admin' || hash === '#admin';
+  });
+
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const path = window.location.pathname.toLowerCase().replace(/\/$/, '');
+      const hash = window.location.hash.toLowerCase();
+      setIsAdminRoute(path === '/admin' || hash === '#/admin' || hash === '#admin');
+    };
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
+  }, []);
+
+  const navigateToHome = () => {
+    if (window.location.pathname.toLowerCase().startsWith('/admin')) {
+      window.history.pushState(null, '', '/');
+    } else {
+      window.location.hash = '';
+    }
+    setIsAdminRoute(false);
+  };
 
   // Auto-sync state to localStorage
   useEffect(() => saveStorage('bhangar_societies', societies), [societies]);
@@ -541,6 +574,48 @@ export function App() {
 
   const savedItems = items.filter((it) => savedIds.has(it.id));
 
+  // Render Admin Dashboard if user is on /admin route
+  if (isAdminRoute) {
+    return (
+      <>
+        <Analytics />
+        <AdminDashboard
+          items={items}
+          societies={societies}
+          offers={sellerOffers}
+          comments={comments}
+          userProfile={userProfile}
+          onBackToStorefront={navigateToHome}
+          onUpdateItemStatus={(itemId, status) => {
+            setItems(prev => prev.map(it => it.id === itemId ? { ...it, status } : it));
+            if (isSupabaseConfigured() && supabase) {
+              supabase.from('items').update({ status }).eq('id', itemId).then(() => {});
+            }
+          }}
+          onDeleteItem={(itemId) => {
+            setItems(prev => prev.filter(it => it.id !== itemId));
+            if (isSupabaseConfigured() && supabase) {
+              supabase.from('items').delete().eq('id', itemId).then(() => {});
+            }
+          }}
+          onApproveSociety={(newSoc) => {
+            setSocieties(prev => [newSoc, ...prev.filter(s => s.id !== newSoc.id)]);
+          }}
+          onRefreshData={async () => {
+            try {
+              const freshItems = await fetchItemsFromDB();
+              setItems(freshItems);
+              const freshOffers = await fetchOffersFromDB();
+              setSellerOffers(freshOffers);
+            } catch (e) {
+              console.warn('Admin refresh error:', e);
+            }
+          }}
+        />
+      </>
+    );
+  }
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -550,6 +625,7 @@ export function App() {
       width: '100%',
       overflowX: 'hidden'
     }}>
+      <Analytics />
       {/* Header */}
       <Header
         currentSociety={currentSociety}
@@ -832,6 +908,18 @@ export function App() {
             >
               + Add your society
             </button>
+            <a
+              href="/admin"
+              onClick={(e) => {
+                e.preventDefault();
+                window.history.pushState(null, '', '/admin');
+                setIsAdminRoute(true);
+              }}
+              style={{ color: 'var(--text-muted)', textDecoration: 'none', opacity: 0.6, fontSize: '11px' }}
+              title="Admin & PM Portal"
+            >
+              Admin
+            </a>
           </div>
         </div>
       </footer>
