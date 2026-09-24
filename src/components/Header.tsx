@@ -78,11 +78,9 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Location / Society Trigger */}
           <div style={{ position: 'relative', minWidth: 0, flexShrink: 1 }}>
-            {/* Build a short label: first word of society + tower short */}
+            {/* Display society name cleanly without artificial string clipping */}
             {(() => {
               const rawName = currentSociety.name.split('(')[0].trim();
-              const shortName = rawName.split(' ').slice(0, 2).join(' ');
-              const label = shortName.length > 12 ? shortName.slice(0, 11) + '\u2026' : shortName;
               const towerShort = userTower.replace('Tower ', 'T');
               return (
                 <button
@@ -107,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <MapPin size={13} color="#059669" strokeWidth={2.2} style={{ flexShrink: 0 }} />
                   <span className="society-trigger-label" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {label}
+                    {rawName}
                     <span className="hide-on-mobile" style={{ color: 'var(--text-muted)', fontWeight: 500, marginLeft: '3px' }}>
                       · {towerShort}
                     </span>
@@ -429,24 +427,10 @@ export const Header: React.FC<HeaderProps> = ({
           {!userProfile.isLoggedIn ? (
             <button
               onClick={onOpenGoogleLogin}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '5px 8px',
-                borderRadius: 'var(--radius-xs)',
-                background: '#FFFFFF',
-                border: '1.5px solid var(--border-subtle)',
-                color: 'var(--text-primary)',
-                fontSize: '11px',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-              }}
+              className="mobile-login-btn"
               title="Log In"
             >
-              <svg width="11" height="11" viewBox="0 0 24 24">
+              <svg width="12" height="12" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
                 <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
                 <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24z"/>
                 <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
@@ -457,27 +441,14 @@ export const Header: React.FC<HeaderProps> = ({
           ) : (
             <button
               onClick={onOpenProfile}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '5px 8px',
-                borderRadius: 'var(--radius-xs)',
-                background: 'var(--bg-subtle)',
-                border: '1px solid var(--border-hairline)',
-                color: 'var(--text-primary)',
-                fontSize: '11px',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                cursor: 'pointer'
-              }}
+              className="mobile-profile-btn"
               title="Resident profile"
             >
               {userProfile.customAvatar || userProfile.googleAvatar ? (
                 <img
                   src={userProfile.customAvatar || userProfile.googleAvatar}
                   alt={userProfile.name}
-                  style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }}
+                  style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
                 />
               ) : (
                 <div style={{
@@ -490,7 +461,8 @@ export const Header: React.FC<HeaderProps> = ({
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  flexShrink: 0
                 }}>
                   ✓
                 </div>
@@ -502,24 +474,12 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Quick List Button */}
           <button
             onClick={onOpenListItem}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '5px 8px',
-              borderRadius: 'var(--radius-xs)',
-              background: 'var(--text-primary)',
-              color: '#FFFFFF',
-              fontSize: '11px',
-              fontWeight: 600,
-              whiteSpace: 'nowrap'
-            }}
+            className="mobile-list-btn"
+            title="List an item"
           >
-            <Plus size={12} />
-            <span>List</span>
+            <Plus size={13} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+            <span className="mobile-list-text">List</span>
           </button>
-
-
 
           {/* Hamburger Menu Toggle Button */}
           <button
@@ -527,22 +487,10 @@ export const Header: React.FC<HeaderProps> = ({
               setShowMobileMenu(!showMobileMenu);
               setShowLocationMenu(false);
             }}
-            style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: 'var(--radius-xs)',
-              border: '1px solid var(--border-subtle)',
-              background: showMobileMenu ? 'var(--bg-subtle)' : '#FFFFFF',
-              color: 'var(--text-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-              cursor: 'pointer'
-            }}
+            className="mobile-menu-btn"
             aria-label="Toggle navigation menu"
           >
-            {showMobileMenu ? <X size={18} /> : <Menu size={18} />}
+            {showMobileMenu ? <X size={17} /> : <Menu size={17} />}
 
             {/* Notification indicator on hamburger */}
             {hasActivity && !showMobileMenu && (
