@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, Plus, Heart, Building2, Menu, X, Tag, User, LogIn, CheckCircle2, MapPin } from 'lucide-react';
 import { SocietyInfo, METRO_SOCIETIES, UserProfile } from '../data/mockData';
 
@@ -39,6 +39,11 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [showLocationMenu, setShowLocationMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [towerInput, setTowerInput] = useState(userTower || '');
+
+  useEffect(() => {
+    setTowerInput(userTower || '');
+  }, [userTower]);
 
   const hasActivity = pendingOffersCount > 0 || savedWishlistCount > 0;
 
@@ -177,35 +182,57 @@ export const Header: React.FC<HeaderProps> = ({
                     ))}
                   </div>
 
-                  {/* Tower selector */}
-                  <div style={{ borderTop: '1px solid var(--border-hairline)', paddingTop: '10px', marginBottom: '10px' }}>
-                    <div style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '7px' }}>
-                      Your Tower
+                  {/* Tower Input */}
+                  <div style={{ borderTop: '1px solid var(--border-hairline)', paddingTop: '10px', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>
+                      Your Tower / Wing
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                      {currentSociety.towers.map((tower) => (
-                        <button
-                          key={tower}
-                          onClick={() => {
-                            onChangeUserTower(tower);
-                            setShowLocationMenu(false);
-                          }}
-                          style={{
-                            padding: '4px 12px',
-                            borderRadius: 'var(--radius-full)',
-                            background: tower === userTower ? 'var(--text-primary)' : 'var(--bg-subtle)',
-                            border: tower === userTower ? '1px solid var(--text-primary)' : '1px solid var(--border-hairline)',
-                            color: tower === userTower ? '#FFFFFF' : 'var(--text-secondary)',
-                            fontSize: '12px',
-                            fontWeight: tower === userTower ? 600 : 400,
-                            cursor: 'pointer',
-                            transition: 'all 0.12s ease'
-                          }}
-                        >
-                          {tower}
-                        </button>
-                      ))}
-                    </div>
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (towerInput.trim()) {
+                          onChangeUserTower(towerInput.trim());
+                          setShowLocationMenu(false);
+                        }
+                      }}
+                      style={{ display: 'flex', gap: '6px' }}
+                    >
+                      <input
+                        type="text"
+                        placeholder="e.g. Tower 4, Wing B"
+                        value={towerInput}
+                        onChange={(e) => setTowerInput(e.target.value)}
+                        style={{
+                          flex: 1,
+                          padding: '6px 10px',
+                          fontSize: '12.5px',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border-subtle)',
+                          outline: 'none',
+                          background: '#FFFFFF',
+                          color: 'var(--text-primary)',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                      <button
+                        type="submit"
+                        disabled={!towerInput.trim() || towerInput.trim() === userTower}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          background: (!towerInput.trim() || towerInput.trim() === userTower) ? 'var(--bg-subtle)' : 'var(--text-primary)',
+                          color: (!towerInput.trim() || towerInput.trim() === userTower) ? 'var(--text-muted)' : '#FFFFFF',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          border: 'none',
+                          cursor: (!towerInput.trim() || towerInput.trim() === userTower) ? 'default' : 'pointer',
+                          transition: 'all 0.15s ease',
+                          flexShrink: 0
+                        }}
+                      >
+                        Save
+                      </button>
+                    </form>
                   </div>
 
                   {/* Add society CTA */}
@@ -747,7 +774,7 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
 
-            {/* Quick Tower Selector */}
+            {/* Quick Tower Input */}
             <div style={{
               padding: '10px 12px',
               borderRadius: 'var(--radius-xs)',
@@ -756,31 +783,53 @@ export const Header: React.FC<HeaderProps> = ({
               marginBottom: '14px'
             }}>
               <div style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>
-                Your Tower in {currentSociety.name.split('(')[0].trim()}
+                Your Tower / Wing {currentSociety?.name ? `in ${currentSociety.name.split('(')[0].trim()}` : ''}
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                {currentSociety.towers.map((tower) => (
-                  <button
-                    key={tower}
-                    onClick={() => {
-                      onChangeUserTower(tower);
-                      setShowMobileMenu(false);
-                    }}
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: 'var(--radius-xs)',
-                      background: tower === userTower ? 'var(--text-primary)' : '#FFFFFF',
-                      color: tower === userTower ? '#FFFFFF' : 'var(--text-secondary)',
-                      fontSize: '11px',
-                      fontWeight: 500,
-                      border: '1px solid',
-                      borderColor: tower === userTower ? 'var(--text-primary)' : 'var(--border-subtle)'
-                    }}
-                  >
-                    {tower}
-                  </button>
-                ))}
-              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (towerInput.trim()) {
+                    onChangeUserTower(towerInput.trim());
+                    setShowMobileMenu(false);
+                  }
+                }}
+                style={{ display: 'flex', gap: '6px' }}
+              >
+                <input
+                  type="text"
+                  placeholder="e.g. Tower 4, Wing B"
+                  value={towerInput}
+                  onChange={(e) => setTowerInput(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '6px 10px',
+                    fontSize: '12px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-subtle)',
+                    outline: 'none',
+                    background: '#FFFFFF',
+                    color: 'var(--text-primary)',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={!towerInput.trim() || towerInput.trim() === userTower}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    background: (!towerInput.trim() || towerInput.trim() === userTower) ? 'var(--border-subtle)' : 'var(--text-primary)',
+                    color: (!towerInput.trim() || towerInput.trim() === userTower) ? 'var(--text-muted)' : '#FFFFFF',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: (!towerInput.trim() || towerInput.trim() === userTower) ? 'default' : 'pointer',
+                    flexShrink: 0
+                  }}
+                >
+                  Save
+                </button>
+              </form>
             </div>
 
             {/* List an Item Full-Width CTA */}
