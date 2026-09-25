@@ -40,6 +40,28 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   const savingsAmount = item.originalPrice - item.price;
   const isSeller = isItemOwner(item, userProfile);
 
+  const getCleanAssembly = (status?: string) => {
+    if (!status) return 'Ready to use';
+    if (status.includes('Zero assembly') || status.includes('Ready Assembled')) return 'Fully assembled';
+    if (status.includes('Flat-pack') || status.includes('Disassembled')) return 'Needs assembly';
+    if (status.includes('Plug')) return 'Plug & play';
+    return status;
+  };
+
+  const getCleanLift = (lift?: string) => {
+    if (!lift) return 'Fits in lift';
+    if (lift.includes('standard passenger')) return 'Fits in elevator';
+    if (lift.includes('Service lift')) return 'Service lift needed';
+    if (lift.includes('Hand-carry')) return 'Easy to hand-carry';
+    return lift;
+  };
+
+  const getCleanCondition = (cond?: string) => {
+    if (cond === 'like_new') return 'Like new condition';
+    if (cond === 'fixer_upper') return 'Needs repair';
+    return 'Gently used';
+  };
+
   const handlePostQuestion = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newQuestionText.trim() || !onAddComment) return;
@@ -287,53 +309,97 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
             {/* Quick Specs Grid */}
             <div style={{
-              border: '1px solid var(--border-hairline)',
-              borderRadius: 'var(--radius-xs)',
-              overflow: 'hidden',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '8px',
               marginBottom: '14px',
               fontSize: '12px'
             }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', background: 'var(--bg-surface)' }}>
-                <div style={{ padding: '8px 12px', borderRight: '1px solid var(--border-hairline)', borderBottom: '1px solid var(--border-hairline)' }}>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Dimensions</div>
-                  <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{item.dimensions}</div>
-                </div>
-                <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-hairline)' }}>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Assembly</div>
-                  <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{item.assemblyStatus}</div>
-                </div>
-                <div style={{ padding: '8px 12px', borderRight: '1px solid var(--border-hairline)' }}>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Elevator Fit</div>
-                  <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{item.liftFriendly}</div>
-                </div>
-                <div style={{ padding: '8px 12px' }}>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Handover Spot</div>
-                  <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{item.locationNote}</div>
+              <div style={{
+                background: 'var(--bg-subtle)',
+                padding: '9px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-hairline)'
+              }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '10.5px', marginBottom: '2px' }}>Condition</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {getCleanCondition(item.condition)}
                 </div>
               </div>
+
+              <div style={{
+                background: 'var(--bg-subtle)',
+                padding: '9px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-hairline)'
+              }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '10.5px', marginBottom: '2px' }}>Assembly</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {getCleanAssembly(item.assemblyStatus)}
+                </div>
+              </div>
+
+              <div style={{
+                background: 'var(--bg-subtle)',
+                padding: '9px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-hairline)'
+              }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '10.5px', marginBottom: '2px' }}>Elevator</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {getCleanLift(item.liftFriendly)}
+                </div>
+              </div>
+
+              <div style={{
+                background: 'var(--bg-subtle)',
+                padding: '9px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-hairline)'
+              }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '10.5px', marginBottom: '2px' }}>Pickup Tower</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {item.seller?.tower || 'Direct elevator'}
+                </div>
+              </div>
+
+              {item.dimensions && !item.dimensions.toLowerCase().includes('standard') && (
+                <div style={{
+                  gridColumn: 'span 2',
+                  background: 'var(--bg-subtle)',
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-hairline)'
+                }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '10.5px', marginBottom: '2px' }}>Dimensions</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{item.dimensions}</div>
+                </div>
+              )}
             </div>
 
-            {/* Condition Check */}
+            {/* In-Person Verification & Pickup Note */}
             <div style={{
-              padding: '12px 14px',
-              borderRadius: 'var(--radius-xs)',
-              border: '1px solid var(--border-hairline)',
-              background: 'var(--bg-surface)',
+              padding: '11px 13px',
+              borderRadius: '8px',
+              border: '1px solid #BBF7D0',
+              background: '#F0FDF4',
               fontSize: '12px',
               lineHeight: 1.45,
-              color: 'var(--text-secondary)',
-              marginBottom: '18px'
+              color: '#166534',
+              marginBottom: '18px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                <ShieldCheck size={14} color="#0058A3" />
-                <span>Condition Check</span>
+              <CheckCircle2 size={15} color="#16A34A" style={{ marginTop: '2px', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 600, color: '#14532D', marginBottom: '2px' }}>
+                  In-Person Inspection
+                </div>
+                <div>
+                  Meet {item.seller.alias} at {item.seller.tower} to check the item yourself before taking it. Handover via elevator with zero courier or packing hassle.
+                </div>
               </div>
-              <p style={{ margin: '0 0 4px', color: 'var(--text-primary)' }}>
-                {item.inspectionNote}
-              </p>
-              <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-                {item.description}
-              </p>
             </div>
           </>
         ) : (
@@ -727,25 +793,27 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 disabled={item.status === 'held' || item.status === 'sold'}
                 style={{
                   width: '100%',
-                  padding: '11px',
+                  padding: '12px',
                   borderRadius: 'var(--radius-xs)',
                   background: item.status === 'sold' || item.status === 'held' ? 'var(--bg-subtle)' : 'var(--text-primary)',
                   color: item.status === 'sold' || item.status === 'held' ? 'var(--text-muted)' : '#FFFFFF',
-                  fontSize: '13px',
-                  fontWeight: 500,
+                  fontSize: '13.5px',
+                  fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px'
+                  gap: '7px',
+                  border: 'none',
+                  cursor: item.status === 'held' || item.status === 'sold' ? 'default' : 'pointer'
                 }}
               >
-                <Lock size={13} />
+                <MessageSquare size={15} />
                 <span>
                   {item.status === 'sold'
                     ? 'Sold Out'
                     : item.status === 'held'
                     ? 'Reserved on Hold'
-                    : 'Make an Offer'}
+                    : 'Make an Offer / Chat'}
                 </span>
                 {item.status !== 'held' && item.status !== 'sold' && <ArrowRight size={14} />}
               </button>
@@ -755,7 +823,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 color: 'var(--text-muted)',
                 marginTop: '6px'
               }}>
-                🤝 Direct WhatsApp &amp; Phone numbers shared upon offer to discuss pickup off-platform
+                💬 Connect directly with {item.seller.alias} to agree on price &amp; pickup time
               </div>
             </div>
           )}

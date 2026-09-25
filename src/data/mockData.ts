@@ -215,7 +215,7 @@ export const AI_CATALOG: Record<string, AIDetectionResult> = {
     estimatedRetail: 8000,
     suggestedPrice: 2000,
     pricePresets: [1500, 2000, 2500],
-    dimensions: 'Standard apartment size',
+    dimensions: '',
     assemblyStatus: 'Ready Assembled (Zero assembly needed)',
     liftFriendly: 'Fits standard passenger lift',
     condition: 'gently_used',

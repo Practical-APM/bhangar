@@ -146,7 +146,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     {userProfile.phone}
                   </div>
                   <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-                    Shared with buyers & sellers on offers for off-platform handover
+                    Shared with neighbors when an offer is made to coordinate pickup on WhatsApp
                   </div>
                 </div>
               </div>

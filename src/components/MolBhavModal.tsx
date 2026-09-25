@@ -401,7 +401,7 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
                 }}
               />
               <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', display: 'block', marginTop: '3px' }}>
-                🤝 Shared with {item.seller.name} to quickly discuss pickup time and close the deal off-platform.
+                🤝 Shared with {item.seller.name} so you can coordinate pickup directly on WhatsApp.
               </span>
               {phoneError && (
                 <span style={{ fontSize: '11px', color: '#DC2626', display: 'block', marginTop: '3px', fontWeight: 500 }}>
@@ -599,7 +599,7 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
                 </a>
               </div>
               <div style={{ fontSize: '10.5px', color: '#047857', marginTop: '6px', textAlign: 'center' }}>
-                Discuss a time to meet and take the deal forward off-platform.
+                Chat on WhatsApp or call to schedule an elevator handover.
               </div>
             </div>
           </div>

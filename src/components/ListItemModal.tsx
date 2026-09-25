@@ -161,13 +161,15 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
       originalPrice: orig,
       condition,
       conditionLabel: isWanted ? 'Wanted by Neighbor' : (condition === 'fixer_upper' ? 'Needs Repair' : (condition === 'like_new' ? 'Like New' : 'Gently Used')),
-      dimensions: dimensions.trim() || 'Standard size',
+      dimensions: dimensions.trim(),
       assemblyStatus,
       liftFriendly,
-      inspectionNote: isWanted ? 'Looking to purchase or borrow from a neighbor in the society.' : 'Available for inspection at pickup in residential tower.',
+      inspectionNote: isWanted
+        ? 'Looking to purchase or borrow from a neighbor in the society.'
+        : 'Inspect in person before paying.',
       description: isWanted
         ? `Looking for this item in ${currentSociety.name.split('(')[0].trim()}. Direct elevator handover from ${finalTower}.`
-        : `Listed in ${currentSociety.name.split('(')[0].trim()}. Direct resident pickup from ${finalTower}.`,
+        : `Available for direct elevator handover from ${finalTower}. Feel free to inspect before taking it.`,
       aspectRatio: '3/4',
       savesCount: 0,
       images: images.length > 0 ? images : ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'],
@@ -680,7 +682,7 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
             </div>
 
             <span style={{ fontSize: '10.5px', color: '#15803D', display: 'block', lineHeight: 1.35 }}>
-              🤝 Shared with neighbors when an offer is made so you can coordinate elevator inspection and handover off-platform.
+              🤝 Shared with interested neighbors so you can coordinate inspection and elevator handover on WhatsApp.
             </span>
           </div>
 
