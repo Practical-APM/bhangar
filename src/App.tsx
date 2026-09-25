@@ -27,7 +27,8 @@ import {
   SocietyRequest,
   UserProfile,
   ItemComment,
-  isItemOwner
+  isItemOwner,
+  getDistanceKm
 } from './data/mockData';
 import {
   fetchItemsFromDB,
@@ -42,7 +43,8 @@ import {
   fetchSocietiesFromDB,
   createSocietyInDB,
   updateItemStatusInDB,
-  updateItemPriceInDB
+  updateItemPriceInDB,
+  renewItemInDB
 } from './services/api';
 import { supabase, isSupabaseConfigured, signOutFromSupabase } from './lib/supabase';
 
@@ -442,8 +444,13 @@ export function App() {
   const mySellerOffers = sellerOffers.filter((o) => myItemIds.has(o.itemId));
   const pendingOffersCount = mySellerOffers.filter((o) => o.status === 'pending').length;
 
+  // Filter out expired items from public view (unless owner viewing their own items)
+  const activeUnexpiredItems = items.filter(
+    (item) => !item.isExpired || isItemOwner(item, userProfile)
+  );
+
   // Filtering logic (Feed shows items from all societies by default, with city and society filters)
-  const filteredItems = items.filter((item) => {
+  const filteredItems = activeUnexpiredItems.filter((item) => {
     // Saved filter
     if (showOnlySaved && !savedIds.has(item.id)) return false;
 
@@ -493,6 +500,65 @@ export function App() {
 
     return true;
   });
+
+  // Sort items: items with recent price drops get an organic boost, then by recency
+  const sortedFilteredItems = [...filteredItems].sort((a, b) => {
+    // If one has a recent price drop, boost it to the top
+    const aDrop = a.previousPrice && a.previousPrice > a.price ? 1 : 0;
+    const bDrop = b.previousPrice && b.previousPrice > b.price ? 1 : 0;
+    if (aDrop !== bDrop) return bDrop - aDrop;
+
+    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return timeB - timeA;
+  });
+
+  // Nearby spillover items (when user is filtering by my_society and there are few or zero items)
+  const nearbySpilloverItems = React.useMemo(() => {
+    if (selectedScopeFilter !== 'my_society' || !currentSociety.id) return [];
+    const currentSocName = (currentSociety.name || '').trim().toLowerCase();
+
+    return activeUnexpiredItems
+      .filter((item) => {
+        const itemSoc = (item.seller?.society || '').trim().toLowerCase();
+        if (itemSoc === currentSocName) return false;
+
+        // Match category
+        if (selectedCategory === 'moving_out' && !item.isMovingOut) return false;
+        if (selectedCategory === 'fixer' && item.condition !== 'fixer_upper' && item.category !== 'fixer' && item.roomType !== 'fixer') return false;
+        if (selectedCategory === 'wfh' && item.roomType !== 'wfh' && item.category !== 'electronics') return false;
+        if (selectedCategory === 'furniture' && item.category !== 'furniture') return false;
+        if (selectedCategory === 'living' && item.roomType !== 'living' && item.category !== 'decor') return false;
+        if (selectedCategory === 'appliances' && item.roomType !== 'appliances' && item.category !== 'appliances') return false;
+
+        // Search match
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase();
+          const matchTitle = (item.title || '').toLowerCase().includes(q);
+          const matchDesc = (item.description || '').toLowerCase().includes(q);
+          if (!matchTitle && !matchDesc) return false;
+        }
+
+        return true;
+      })
+      .map((item) => {
+        let distanceKm: number | undefined;
+        if (currentSociety.lat && currentSociety.lng) {
+          const matchSoc = societies.find(s => s.name.toLowerCase() === (item.seller?.society || '').toLowerCase());
+          if (matchSoc?.lat && matchSoc?.lng) {
+            distanceKm = getDistanceKm(currentSociety.lat, currentSociety.lng, matchSoc.lat, matchSoc.lng);
+          }
+        }
+        return { item, distanceKm };
+      })
+      .sort((a, b) => {
+        if (a.distanceKm !== undefined && b.distanceKm !== undefined) {
+          return a.distanceKm - b.distanceKm;
+        }
+        return 0;
+      })
+      .slice(0, 8);
+  }, [activeUnexpiredItems, selectedScopeFilter, currentSociety, societies, selectedCategory, searchQuery]);
 
   const handleSelectSociety = (soc: SocietyInfo) => {
     setCurrentSociety(soc);
@@ -605,13 +671,54 @@ export function App() {
   };
 
   const handleMarkdownItem = (itemId: string, newPrice: number) => {
+    let oldPrice: number | undefined;
+    const now = new Date().toISOString();
     setItems((prev) =>
-      prev.map((it) => (it.id === itemId ? { ...it, price: newPrice } : it))
+      prev.map((it) => {
+        if (it.id === itemId) {
+          oldPrice = it.price;
+          return {
+            ...it,
+            price: newPrice,
+            previousPrice: it.price > newPrice ? it.price : it.previousPrice,
+            priceDroppedAt: now
+          };
+        }
+        return it;
+      })
     );
     if (activeDetailItem?.id === itemId) {
-      setActiveDetailItem((prev) => (prev ? { ...prev, price: newPrice } : null));
+      setActiveDetailItem((prev) =>
+        prev
+          ? {
+              ...prev,
+              price: newPrice,
+              previousPrice: prev.price > newPrice ? prev.price : prev.previousPrice,
+              priceDroppedAt: now
+            }
+          : null
+      );
     }
-    updateItemPriceInDB(itemId, newPrice);
+    updateItemPriceInDB(itemId, newPrice, oldPrice);
+  };
+
+  const handleRenewItem = async (itemId: string) => {
+    const now = new Date().toISOString();
+    setItems((prev) =>
+      prev.map((it) =>
+        it.id === itemId
+          ? { ...it, createdAt: now, isExpired: false, renewedAt: now, listedAgo: 'Just now' }
+          : it
+      )
+    );
+    if (activeDetailItem?.id === itemId) {
+      setActiveDetailItem((prev) =>
+        prev
+          ? { ...prev, createdAt: now, isExpired: false, renewedAt: now, listedAgo: 'Just now' }
+          : null
+      );
+    }
+    await renewItemInDB(itemId);
   };
 
   const handleDeleteItem = async (itemId: string) => {
@@ -891,32 +998,165 @@ export function App() {
         </div>
 
         {/* Pure Product Masonry Feed */}
-        {filteredItems.length > 0 ? (
-          <div className="masonry-feed">
-            {filteredItems.map((item) => {
-              const isOwner = isItemOwner(item, userProfile);
-              return (
-                <ProductCard
-                  key={item.id}
-                  item={item}
-                  userTower={userTower}
-                  isOwner={isOwner}
-                  isSaved={savedIds.has(item.id)}
-                  onToggleSave={handleToggleSave}
-                  onOpenOfferModal={(it) => {
-                    if (isItemOwner(it, userProfile)) {
-                      setActiveDetailItem(it);
-                      return;
-                    }
-                    requireAuth(
-                      () => setActiveOfferItem(it),
-                      `Sign in with Google to make offers and negotiate with ${it.seller.alias} in ${it.seller.tower}`
+        {sortedFilteredItems.length > 0 ? (
+          <div>
+            <div className="masonry-feed">
+              {sortedFilteredItems.map((item) => {
+                const isOwner = isItemOwner(item, userProfile);
+                return (
+                  <ProductCard
+                    key={item.id}
+                    item={item}
+                    userTower={userTower}
+                    currentSocietyName={currentSociety.name}
+                    isOwner={isOwner}
+                    isSaved={savedIds.has(item.id)}
+                    onToggleSave={handleToggleSave}
+                    onOpenOfferModal={(it) => {
+                      if (isItemOwner(it, userProfile)) {
+                        setActiveDetailItem(it);
+                        return;
+                      }
+                      requireAuth(
+                        () => setActiveOfferItem(it),
+                        `Sign in with Google to make offers and negotiate with ${it.seller.alias} in ${it.seller.tower}`
+                      );
+                    }}
+                    onViewDetails={(it) => setActiveDetailItem(it)}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Nearby Society Spillover Section (when society has few items) */}
+            {selectedScopeFilter === 'my_society' && sortedFilteredItems.length < 4 && nearbySpilloverItems.length > 0 && (
+              <div style={{ marginTop: '36px', borderTop: '1px dashed var(--border-medium)', paddingTop: '24px' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '16px' }}>📍</span>
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      More Finds in Nearby Societies
+                    </span>
+                    <span style={{
+                      fontSize: '11px',
+                      background: '#EFF6FF',
+                      color: '#1D4ED8',
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      fontWeight: 600
+                    }}>
+                      Within 3 km
+                    </span>
+                  </div>
+                </div>
+
+                <div className="masonry-feed">
+                  {nearbySpilloverItems.map(({ item, distanceKm }) => {
+                    const isOwner = isItemOwner(item, userProfile);
+                    return (
+                      <ProductCard
+                        key={`nearby-${item.id}`}
+                        item={item}
+                        userTower={userTower}
+                        currentSocietyName={currentSociety.name}
+                        distanceKm={distanceKm}
+                        isOwner={isOwner}
+                        isSaved={savedIds.has(item.id)}
+                        onToggleSave={handleToggleSave}
+                        onOpenOfferModal={(it) => {
+                          if (isItemOwner(it, userProfile)) {
+                            setActiveDetailItem(it);
+                            return;
+                          }
+                          requireAuth(
+                            () => setActiveOfferItem(it),
+                            `Sign in with Google to make offers and negotiate with ${it.seller.alias}`
+                          );
+                        }}
+                        onViewDetails={(it) => setActiveDetailItem(it)}
+                      />
                     );
-                  }}
-                  onViewDetails={(it) => setActiveDetailItem(it)}
-                />
-              );
-            })}
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : nearbySpilloverItems.length > 0 ? (
+          /* Graceful Spillover When Current Society Has 0 Items */
+          <div>
+            <div style={{
+              margin: '0 auto 24px',
+              padding: '14px 18px',
+              background: '#EFF6FF',
+              border: '1px solid #BFDBFE',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '20px' }}>🏘️</span>
+                <div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#1E3A8A' }}>
+                    No listings yet in {currentSociety.name.split('(')[0].trim()}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#3B82F6' }}>
+                    Showing verified pre-loved finds from nearby societies (within 3 km):
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => requireAuth(() => setShowListItemModal(true), 'Sign in to list items')}
+                style={{
+                  padding: '8px 14px',
+                  background: '#1D4ED8',
+                  color: '#FFFFFF',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                + Post First Listing
+              </button>
+            </div>
+
+            <div className="masonry-feed">
+              {nearbySpilloverItems.map(({ item, distanceKm }) => {
+                const isOwner = isItemOwner(item, userProfile);
+                return (
+                  <ProductCard
+                    key={`spillover-${item.id}`}
+                    item={item}
+                    userTower={userTower}
+                    currentSocietyName={currentSociety.name}
+                    distanceKm={distanceKm}
+                    isOwner={isOwner}
+                    isSaved={savedIds.has(item.id)}
+                    onToggleSave={handleToggleSave}
+                    onOpenOfferModal={(it) => {
+                      if (isItemOwner(it, userProfile)) {
+                        setActiveDetailItem(it);
+                        return;
+                      }
+                      requireAuth(
+                        () => setActiveOfferItem(it),
+                        `Sign in with Google to make offers and negotiate with ${it.seller.alias}`
+                      );
+                    }}
+                    onViewDetails={(it) => setActiveDetailItem(it)}
+                  />
+                );
+              })}
+            </div>
           </div>
         ) : items.length === 0 ? (
           <div style={{
@@ -1109,6 +1349,8 @@ export function App() {
           onClose={() => setActiveDetailItem(null)}
           onDeleteItem={handleDeleteItem}
           onUpdateItemStatus={handleUpdateItemStatus}
+          onMarkdownItem={handleMarkdownItem}
+          onRenewItem={handleRenewItem}
           onOpenOfferModal={(it) => {
             requireAuth(() => {
               setActiveDetailItem(null);

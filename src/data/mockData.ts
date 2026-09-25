@@ -42,6 +42,11 @@ export interface ThriftItem {
   listedAgo: string;
   is_seed?: boolean;
   sellerId?: string;
+  createdAt?: string;
+  previousPrice?: number;
+  priceDroppedAt?: string;
+  isExpired?: boolean;
+  renewedAt?: string;
 }
 
 export interface SellerOffer {

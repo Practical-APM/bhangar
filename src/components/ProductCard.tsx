@@ -5,6 +5,8 @@ import { ThriftItem } from '../data/mockData';
 interface ProductCardProps {
   item: ThriftItem;
   userTower: string;
+  currentSocietyName?: string;
+  distanceKm?: number;
   isOwner?: boolean;
   isSaved?: boolean;
   onToggleSave?: (id: string) => void;
@@ -15,6 +17,8 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({
   item,
   userTower,
+  currentSocietyName,
+  distanceKm,
   isOwner = false,
   isSaved = false,
   onToggleSave,
@@ -218,24 +222,60 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
         {/* Society & Tower Tag */}
         <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            background: isSameTower ? '#ECFDF5' : 'var(--bg-subtle)',
-            color: isSameTower ? '#047857' : 'var(--text-secondary)',
-            padding: '2px 8px',
-            borderRadius: 'var(--radius-full)',
-            fontSize: '10.5px',
-            fontWeight: 500,
-            border: `1px solid ${isSameTower ? '#A7F3D0' : 'var(--border-hairline)'}`,
-          }}>
-            <span style={{ fontWeight: 600 }}>{(item.seller?.society || 'Society').split('(')[0].trim()}</span>
-            <span style={{ color: 'var(--text-muted)' }}>· {item.seller?.tower || 'Tower'}</span>
-          </span>
+          {!currentSocietyName || (item.seller?.society || '').trim().toLowerCase() === currentSocietyName.trim().toLowerCase() ? (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              background: isSameTower ? '#ECFDF5' : 'var(--bg-subtle)',
+              color: isSameTower ? '#047857' : 'var(--text-secondary)',
+              padding: '2px 8px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '10.5px',
+              fontWeight: 500,
+              border: `1px solid ${isSameTower ? '#A7F3D0' : 'var(--border-hairline)'}`,
+            }}>
+              <span style={{ fontWeight: 600 }}>{(item.seller?.society || 'Society').split('(')[0].trim()}</span>
+              <span style={{ color: 'var(--text-muted)' }}>· {item.seller?.tower || 'Tower'}</span>
+            </span>
+          ) : (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              background: '#EFF6FF',
+              color: '#1D4ED8',
+              padding: '2px 8px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '10.5px',
+              fontWeight: 600,
+              border: '1px solid #BFDBFE',
+            }}>
+              <span>📍 Nearby · {(item.seller?.society || 'Society').split('(')[0].trim()}{typeof distanceKm === 'number' && distanceKm > 0 ? ` (${distanceKm < 1 ? `${Math.round(distanceKm * 1000)}m` : `${distanceKm.toFixed(1)} km`})` : ''}</span>
+            </span>
+          )}
+
           {item.seller?.city && (
             <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500 }}>
               {item.seller.city}
+            </span>
+          )}
+
+          {item.previousPrice && item.previousPrice > item.price && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px',
+              background: '#FEF2F2',
+              color: '#DC2626',
+              padding: '2px 7px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '10px',
+              fontWeight: 700,
+              border: '1px solid #FECACA'
+            }}>
+              <span>🔥</span>
+              <span>₹{(item.previousPrice - item.price).toLocaleString('en-IN')} off</span>
             </span>
           )}
         </div>
@@ -276,16 +316,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </span>
           </div>
 
-          <span style={{
-            background: 'var(--ikea-yellow)',
-            color: '#1A1A1A',
-            fontSize: '10.5px', fontWeight: 700,
-            padding: '3px 8px',
-            borderRadius: 'var(--radius-full)',
-            letterSpacing: '-0.01em',
-          }}>
-            -{discountPercent}%
-          </span>
+          {item.previousPrice && item.previousPrice > item.price ? (
+            <span style={{
+              background: '#DC2626',
+              color: '#FFFFFF',
+              fontSize: '10px', fontWeight: 700,
+              padding: '2.5px 7px',
+              borderRadius: 'var(--radius-full)',
+              letterSpacing: '-0.01em',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px'
+            }}>
+              <span>🔥 Price Drop</span>
+            </span>
+          ) : (
+            <span style={{
+              background: 'var(--ikea-yellow)',
+              color: '#1A1A1A',
+              fontSize: '10.5px', fontWeight: 700,
+              padding: '3px 8px',
+              borderRadius: 'var(--radius-full)',
+              letterSpacing: '-0.01em',
+            }}>
+              -{discountPercent}%
+            </span>
+          )}
         </div>
 
         {/* CTA Button */}

@@ -13,6 +13,8 @@ interface ItemDetailModalProps {
   onOpenSellerOffers?: () => void;
   onDeleteItem?: (itemId: string) => void;
   onUpdateItemStatus?: (itemId: string, status: 'available' | 'held' | 'sold') => void;
+  onMarkdownItem?: (itemId: string, newPrice: number) => void;
+  onRenewItem?: (itemId: string) => void;
 }
 
 export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
@@ -25,7 +27,9 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   onOpenOfferModal,
   onOpenSellerOffers,
   onDeleteItem,
-  onUpdateItemStatus
+  onUpdateItemStatus,
+  onMarkdownItem,
+  onRenewItem
 }) => {
   const [activeTab, setActiveTab] = useState<'specs' | 'discussion'>('specs');
   const [activeImgIndex, setActiveImgIndex] = useState(0);
@@ -485,6 +489,45 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 )}
               </div>
 
+              {/* Listing Expired Banner */}
+              {item.isExpired && (
+                <div style={{
+                  padding: '9px 12px',
+                  background: '#FFFBEB',
+                  border: '1px solid #FDE68A',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                  marginBottom: '10px'
+                }}>
+                  <div style={{ fontSize: '11.5px', color: '#92400E' }}>
+                    <strong>Listing Expired (21+ days old)</strong>
+                    <div style={{ fontSize: '10.5px', color: '#B45309' }}>Hidden from neighbors until renewed.</div>
+                  </div>
+                  {onRenewItem && (
+                    <button
+                      type="button"
+                      onClick={() => onRenewItem(item.id)}
+                      style={{
+                        padding: '5px 10px',
+                        background: '#B45309',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: 'var(--radius-xs)',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      🔄 Renew for 14 Days
+                    </button>
+                  )}
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   onClick={() => {
@@ -588,6 +631,38 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                   </button>
                 )}
               </div>
+
+              {/* Quick Price Drop Button */}
+              {onMarkdownItem && item.status === 'available' && (
+                <div style={{ marginTop: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const discounted = Math.round(item.price * 0.9);
+                      if (confirm(`Drop price from ₹${item.price.toLocaleString('en-IN')} to ₹${discounted.toLocaleString('en-IN')} (-10%) to highlight to neighbors?`)) {
+                        onMarkdownItem(item.id, discounted);
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius-xs)',
+                      background: '#FEF2F2',
+                      border: '1px solid #FECACA',
+                      color: '#DC2626',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span>🔥 Drop Price -10% (New: ₹{Math.round(item.price * 0.9).toLocaleString('en-IN')})</span>
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div>

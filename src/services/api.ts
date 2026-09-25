@@ -59,8 +59,26 @@ function mapRowToItem(row: any): ThriftItem {
     movingOutDate: row.moving_out_date,
     status: row.status || 'available',
     tags: Array.isArray(row.tags) ? row.tags : ['#VerifiedResident'],
-    listedAgo: 'Just now',
-    sellerId: row.seller_id || undefined
+    listedAgo: (() => {
+      const createdTimestamp = row.created_at || row.createdAt || new Date().toISOString();
+      const createdTime = new Date(createdTimestamp).getTime();
+      const ageDays = Math.max(0, (Date.now() - createdTime) / (1000 * 60 * 60 * 24));
+      if (ageDays < 1 / 24) return 'Just now';
+      if (ageDays < 1) return `${Math.floor(ageDays * 24)}h ago`;
+      if (ageDays < 2) return 'Yesterday';
+      return `${Math.floor(ageDays)}d ago`;
+    })(),
+    sellerId: row.seller_id || undefined,
+    createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+    previousPrice: row.previous_price || (row.previousPrice ? Number(row.previousPrice) : undefined),
+    priceDroppedAt: row.price_dropped_at || row.priceDroppedAt || undefined,
+    isExpired: (() => {
+      const createdTimestamp = row.created_at || row.createdAt;
+      if (!createdTimestamp) return false;
+      const ageDays = (Date.now() - new Date(createdTimestamp).getTime()) / (1000 * 60 * 60 * 24);
+      return ageDays > 21;
+    })(),
+    renewedAt: row.renewed_at || row.renewedAt || undefined
   };
 }
 
@@ -350,13 +368,25 @@ export async function updateItemStatusInDB(itemId: string, status: 'available' |
   return true;
 }
 
-export async function updateItemPriceInDB(itemId: string, newPrice: number): Promise<boolean> {
+export async function updateItemPriceInDB(itemId: string, newPrice: number, previousPrice?: number): Promise<boolean> {
+  const now = new Date().toISOString();
   // 1. Update in local storage
   try {
     const raw = localStorage.getItem('bhangar_items');
     if (raw) {
       const items: ThriftItem[] = JSON.parse(raw);
-      const updated = items.map(it => it.id === itemId ? { ...it, price: newPrice } : it);
+      const updated = items.map((it) => {
+        if (it.id === itemId) {
+          const oldPrice = previousPrice || it.price;
+          return {
+            ...it,
+            price: newPrice,
+            previousPrice: oldPrice > newPrice ? oldPrice : it.previousPrice,
+            priceDroppedAt: oldPrice > newPrice ? now : it.priceDroppedAt
+          };
+        }
+        return it;
+      });
       localStorage.setItem('bhangar_items', JSON.stringify(updated));
     }
   } catch {}
@@ -364,10 +394,15 @@ export async function updateItemPriceInDB(itemId: string, newPrice: number): Pro
   // 2. Update in Supabase
   if (isSupabaseConfigured() && supabase) {
     try {
-      const { error } = await supabase.from('items').update({ price: newPrice }).eq('id', itemId);
+      const updatePayload: any = { price: newPrice };
+      if (previousPrice) {
+        updatePayload.previous_price = previousPrice;
+        updatePayload.price_dropped_at = now;
+      }
+      const { error } = await supabase.from('items').update(updatePayload).eq('id', itemId);
       if (error) {
-        console.warn('[Supabase] Failed to update item price:', error.message);
-        return false;
+        // Fallback to updating just price if extra columns don't exist yet
+        await supabase.from('items').update({ price: newPrice }).eq('id', itemId);
       }
       return true;
     } catch (e) {
@@ -376,6 +411,33 @@ export async function updateItemPriceInDB(itemId: string, newPrice: number): Pro
     }
   }
 
+  return true;
+}
+
+export async function renewItemInDB(itemId: string): Promise<boolean> {
+  const now = new Date().toISOString();
+  // 1. Local storage
+  try {
+    const raw = localStorage.getItem('bhangar_items');
+    if (raw) {
+      const items: ThriftItem[] = JSON.parse(raw);
+      const updated = items.map(it => it.id === itemId ? {
+        ...it,
+        createdAt: now,
+        isExpired: false,
+        renewedAt: now,
+        listedAgo: 'Just now'
+      } : it);
+      localStorage.setItem('bhangar_items', JSON.stringify(updated));
+    }
+  } catch {}
+
+  // 2. Supabase
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      await supabase.from('items').update({ created_at: now }).eq('id', itemId);
+    } catch {}
+  }
   return true;
 }
 
