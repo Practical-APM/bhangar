@@ -560,7 +560,7 @@ export const MolBhavModal: React.FC<OfferModalProps> = ({
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <a
-                  href={`https://wa.me/${(item.seller.phone || '919810023456').replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${item.seller.name}, I made an offer of ₹${agreedPrice} for your "${item.title}" on Bhangar.Space. When can I drop by your tower to inspect and pick it up?`)}`}
+                  href={`https://wa.me/${(item.seller.phone || '919810023456').replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${item.seller.name}, I made an offer of ₹${agreedPrice} for your "${item.title}" on Bhangar.Space. When can I drop by ${item.seller.tower || 'your tower'} to inspect and pick it up?\n\n(Seller: Once sold, tap to close listing: ${typeof window !== 'undefined' ? window.location.origin : 'https://bhangar.space'}/?action=mark_sold&item=${item.id})`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{

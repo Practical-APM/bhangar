@@ -13,6 +13,7 @@ import { WishlistModal } from './components/WishlistModal';
 import { SocietyModal } from './components/SocietyModal';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Analytics } from '@vercel/analytics/react';
+import { CheckCircle2, X } from 'lucide-react';
 import { 
   METRO_SOCIETIES, 
   DEFAULT_SOCIETY,
@@ -206,6 +207,35 @@ export function App() {
     const hash = window.location.hash.toLowerCase();
     return path === '/admin' || hash === '#/admin' || hash === '#admin';
   });
+
+  // Action URL parameters (e.g. 1-tap WhatsApp mark sold link: /?action=mark_sold&item=xxx)
+  const [markSoldModalItem, setMarkSoldModalItem] = useState<ThriftItem | null>(null);
+  const [markSoldSuccessMessage, setMarkSoldSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const action = urlParams.get('action');
+    const itemId = urlParams.get('item') || urlParams.get('itemId');
+
+    if (action === 'mark_sold' && itemId && items.length > 0) {
+      const target = items.find((it) => it.id === itemId);
+      if (target) {
+        if (target.status === 'sold') {
+          setMarkSoldSuccessMessage(`"${target.title}" is already marked as Sold.`);
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+          setMarkSoldModalItem(target);
+        }
+      }
+    }
+  }, [items]);
+
+  useEffect(() => {
+    if (!markSoldSuccessMessage) return;
+    const timer = setTimeout(() => setMarkSoldSuccessMessage(null), 4500);
+    return () => clearTimeout(timer);
+  }, [markSoldSuccessMessage]);
 
   useEffect(() => {
     const handleLocationChange = () => {
@@ -568,6 +598,9 @@ export function App() {
     setSellerOffers((prev) =>
       prev.map((o) => (o.itemId === itemId ? { ...o, status: 'accepted' as const } : o))
     );
+    if (activeDetailItem?.id === itemId) {
+      setActiveDetailItem((prev) => (prev ? { ...prev, status: 'sold' } : null));
+    }
     updateItemStatusInDB(itemId, 'sold');
   };
 
@@ -575,6 +608,9 @@ export function App() {
     setItems((prev) =>
       prev.map((it) => (it.id === itemId ? { ...it, price: newPrice } : it))
     );
+    if (activeDetailItem?.id === itemId) {
+      setActiveDetailItem((prev) => (prev ? { ...prev, price: newPrice } : null));
+    }
     updateItemPriceInDB(itemId, newPrice);
   };
 
@@ -595,6 +631,9 @@ export function App() {
       setSellerOffers((prev) =>
         prev.map((o) => (o.itemId === itemId ? { ...o, status: 'accepted' as const } : o))
       );
+    }
+    if (activeDetailItem?.id === itemId) {
+      setActiveDetailItem((prev) => (prev ? { ...prev, status } : null));
     }
     updateItemStatusInDB(itemId, status);
   };
@@ -1172,6 +1211,155 @@ export function App() {
           }}
           onLoginSuccess={handleGoogleLoginSuccess}
         />
+      )}
+
+      {/* 1-Tap Magic Action: Mark as Sold Confirmation Modal */}
+      {markSoldModalItem && (
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            setMarkSoldModalItem(null);
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }}
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '400px',
+              padding: '24px',
+              textAlign: 'center',
+              borderRadius: '16px'
+            }}
+          >
+            <div style={{
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              background: '#ECFDF5',
+              color: '#059669',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 12px'
+            }}>
+              <CheckCircle2 size={26} />
+            </div>
+
+            <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
+              Mark as Sold?
+            </h3>
+
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.45, margin: '0 0 16px' }}>
+              Did you complete the sale for <strong>"{markSoldModalItem.title}"</strong>?
+              <br />
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                Closing this listing stops other neighbors from messaging you.
+              </span>
+            </p>
+
+            {/* Item preview card */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '10px 12px',
+              background: 'var(--bg-subtle)',
+              border: '1px solid var(--border-hairline)',
+              borderRadius: '10px',
+              textAlign: 'left',
+              marginBottom: '18px'
+            }}>
+              {markSoldModalItem.images[0] && (
+                <img
+                  src={markSoldModalItem.images[0]}
+                  alt={markSoldModalItem.title}
+                  style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px' }}
+                />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {markSoldModalItem.title}
+                </div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                  ₹{markSoldModalItem.price.toLocaleString('en-IN')}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => {
+                  handleMarkItemSold(markSoldModalItem.id);
+                  setMarkSoldModalItem(null);
+                  setMarkSoldSuccessMessage(`✓ "${markSoldModalItem.title}" marked as Sold! Listing closed.`);
+                  window.history.replaceState({}, document.title, window.location.pathname);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '11px',
+                  borderRadius: 'var(--radius-xs)',
+                  background: '#059669',
+                  color: '#FFFFFF',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                ✓ Yes, Mark as Sold
+              </button>
+
+              <button
+                onClick={() => {
+                  setMarkSoldModalItem(null);
+                  window.history.replaceState({}, document.title, window.location.pathname);
+                }}
+                style={{
+                  padding: '11px 16px',
+                  borderRadius: 'var(--radius-xs)',
+                  background: 'var(--bg-subtle)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  border: '1px solid var(--border-hairline)',
+                  cursor: 'pointer'
+                }}
+              >
+                Keep Active
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Status Notification Toast */}
+      {markSoldSuccessMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#0F172A',
+          color: '#FFFFFF',
+          padding: '10px 18px',
+          borderRadius: '999px',
+          fontSize: '12.5px',
+          fontWeight: 500,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.22)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <span>{markSoldSuccessMessage}</span>
+          <button
+            onClick={() => setMarkSoldSuccessMessage(null)}
+            style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 0, display: 'flex' }}
+          >
+            <X size={14} />
+          </button>
+        </div>
       )}
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Camera, CheckCircle2, ChevronDown, ChevronUp, Tag, Video, Sparkles } from 'lucide-react';
 import { ThriftItem, SocietyInfo, UserProfile, AI_CATALOG, AIDetectionResult, analyzeItemWithAI } from '../data/mockData';
 import { analyzeItemWithGemini, isGeminiConfigured } from '../services/ai';
+import { compressImageToWebP } from '../utils/imageCompressor';
 
 interface ListItemModalProps {
   currentSociety: SocietyInfo;
@@ -23,6 +24,7 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
   const [images, setImages] = useState<string[]>([]);
   const [hasVideoProof, setHasVideoProof] = useState<boolean>(false);
   const [sellerPhone, setSellerPhone] = useState<string>(userProfile?.phone || '');
+  const [sellerTower, setSellerTower] = useState<string>(userProfile?.tower || userTower || '');
 
 
   const [title, setTitle] = useState<string>('');
@@ -82,49 +84,14 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
     }
   };
 
-  const compressImage = (file: File, maxDim = 900, quality = 0.78): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          if (width > height) {
-            if (width > maxDim) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            }
-          } else {
-            if (height > maxDim) {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', quality));
-          } else {
-            resolve(e.target?.result as string);
-          }
-        };
-        img.src = e.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
   const handleMultipleFilesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setIsAnalyzing(true);
     try {
+      const validFiles = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, 4);
       const compressedList = await Promise.all(
-        Array.from(files).slice(0, 4).map((f) => compressImage(f))
+        validFiles.map((f) => compressImageToWebP(f, { maxDimension: 1200, quality: 0.82 }))
       );
       setImages((prev) => [...compressedList, ...prev].slice(0, 6));
       if (title.trim()) {
@@ -132,7 +99,8 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
       } else {
         setIsAnalyzing(false);
       }
-    } catch {
+    } catch (err) {
+      console.warn('[ImageUpload] Notice processing images:', err);
       setIsAnalyzing(false);
     }
   };
@@ -150,12 +118,18 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
     const randomArt = `${Math.floor(100 + Math.random() * 900)}.${Math.floor(100 + Math.random() * 900)}.${Math.floor(10 + Math.random() * 90)}`;
     const category = detectedData ? detectedData.category : 'furniture';
     const roomType = detectedData ? detectedData.roomType : 'living';
+    const finalTower = sellerTower.trim() || userTower || 'Tower 1';
 
-    if (sellerPhone && userProfile && onUpdateUserProfile && sellerPhone.trim() !== userProfile.phone) {
-      onUpdateUserProfile({
-        ...userProfile,
-        phone: sellerPhone.trim()
-      });
+    if (userProfile && onUpdateUserProfile) {
+      const phoneChanged = sellerPhone.trim() && sellerPhone.trim() !== userProfile.phone;
+      const towerChanged = finalTower !== userProfile.tower;
+      if (phoneChanged || towerChanged) {
+        onUpdateUserProfile({
+          ...userProfile,
+          phone: sellerPhone.trim() || userProfile.phone,
+          tower: finalTower
+        });
+      }
     }
 
     const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID
@@ -177,7 +151,7 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
       assemblyStatus,
       liftFriendly,
       inspectionNote: 'Available for inspection at pickup in residential tower.',
-      description: `Listed in ${currentSociety.name.split('(')[0].trim()}. Direct resident pickup from ${userTower}.`,
+      description: `Listed in ${currentSociety.name.split('(')[0].trim()}. Direct resident pickup from ${finalTower}.`,
       aspectRatio: '3/4',
       savesCount: 0,
       images: images.length > 0 ? images : ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'],
@@ -185,9 +159,9 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
       videoProofNote: hasVideoProof ? 'Video of working condition available' : undefined,
       sellerId: userProfile?.id,
       seller: {
-        name: userProfile?.name || `Resident (${userTower})`,
-        alias: userProfile?.name || `Resident (${userTower})`,
-        tower: userTower,
+        name: userProfile?.name || `Resident (${finalTower})`,
+        alias: userProfile?.name || `Resident (${finalTower})`,
+        tower: finalTower,
         phone: sellerPhone.trim() || userProfile?.phone,
         society: currentSociety.name,
         city: currentSociety.city,
@@ -196,7 +170,7 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
         dealsCompleted: userProfile?.dealsCompleted || 0,
         responseTime: '< 10 mins'
       },
-      locationNote: `${currentSociety.name.split('(')[0].trim()} · Pickup from ${userTower}`,
+      locationNote: `${currentSociety.name.split('(')[0].trim()} · Pickup from ${finalTower}`,
       isMovingOut,
       bottomLinePrice: Math.round(asking * 0.85),
       status: 'available',
@@ -206,7 +180,6 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
 
     onItemAdded(newItem);
     onClose();
-
   };
 
   return (
@@ -530,41 +503,89 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Price Anchor Psychology Nudge */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginTop: '9px',
+              fontSize: '11px',
+              color: '#78716C',
+              lineHeight: 1.4
+            }}>
+              <span style={{ fontSize: '12px' }}>💡</span>
+              <span>Items priced at 30%–50% of retail usually sell within 48 hours to neighbors.</span>
+            </div>
           </div>
 
-          {/* Seller WhatsApp / Contact Number */}
+          {/* Seller Pickup & Contact Details */}
           <div style={{
             background: '#F0FDF4',
             border: '1px solid #BBF7D0',
             borderRadius: '10px',
-            padding: '12px 14px'
+            padding: '12px 14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#166534' }}>
-                Your WhatsApp / Mobile Number <span style={{ color: '#DC2626' }}>*</span>
-              </label>
-              <span style={{ fontSize: '10.5px', color: '#15803D', fontWeight: 500 }}>
-                For elevator handover
-              </span>
+            {/* Tower / Block / Floor */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
+                <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#166534' }}>
+                  Pickup Tower / Block / Floor
+                </label>
+                <span style={{ fontSize: '10.5px', color: '#15803D', fontWeight: 500 }}>
+                  Elevator pickup
+                </span>
+              </div>
+              <input
+                type="text"
+                placeholder="e.g. Tower C, 4th Floor or Block 2"
+                value={sellerTower}
+                onChange={(e) => setSellerTower(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #A7F3D0',
+                  background: '#FFFFFF',
+                  fontSize: '13px',
+                  boxSizing: 'border-box'
+                }}
+              />
             </div>
-            <input
-              type="tel"
-              required
-              placeholder="+91 98765 43210"
-              value={sellerPhone}
-              onChange={(e) => setSellerPhone(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid #A7F3D0',
-                background: '#FFFFFF',
-                fontSize: '13px',
-                boxSizing: 'border-box'
-              }}
-            />
-            <span style={{ fontSize: '10.5px', color: '#15803D', display: 'block', marginTop: '4px' }}>
-              🤝 Shared with buyers when an offer is placed so they can WhatsApp or call to discuss pickup time off-platform.
+
+            {/* Seller WhatsApp / Contact Number */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
+                <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#166534' }}>
+                  Your WhatsApp / Mobile Number <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <span style={{ fontSize: '10.5px', color: '#15803D', fontWeight: 500 }}>
+                  Shared upon offer
+                </span>
+              </div>
+              <input
+                type="tel"
+                required
+                placeholder="+91 98765 43210"
+                value={sellerPhone}
+                onChange={(e) => setSellerPhone(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #A7F3D0',
+                  background: '#FFFFFF',
+                  fontSize: '13px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <span style={{ fontSize: '10.5px', color: '#15803D', display: 'block', lineHeight: 1.35 }}>
+              🤝 Shared with neighbors when an offer is made so you can coordinate elevator inspection and handover off-platform.
             </span>
           </div>
 

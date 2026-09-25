@@ -511,6 +511,54 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                   <ArrowRight size={14} />
                 </button>
 
+                {/* 1-Tap Mark as Sold or Reactivate */}
+                {onUpdateItemStatus && (
+                  item.status === 'sold' ? (
+                    <button
+                      type="button"
+                      onClick={() => onUpdateItemStatus(item.id, 'available')}
+                      title="Reactivate listing if deal fell through"
+                      style={{
+                        padding: '11px 14px',
+                        borderRadius: 'var(--radius-xs)',
+                        background: '#F1F5F9',
+                        color: '#334155',
+                        border: '1px solid #CBD5E1',
+                        fontSize: '12.5px',
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span>Reopen</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onUpdateItemStatus(item.id, 'sold')}
+                      title="Mark item as sold to close listing"
+                      style={{
+                        padding: '11px 14px',
+                        borderRadius: 'var(--radius-xs)',
+                        background: '#ECFDF5',
+                        color: '#059669',
+                        border: '1px solid #A7F3D0',
+                        fontSize: '12.5px',
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <CheckCircle2 size={14} />
+                      <span>Mark Sold</span>
+                    </button>
+                  )
+                )}
+
                 {onDeleteItem && (
                   <button
                     type="button"
