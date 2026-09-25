@@ -25,7 +25,7 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
   const [hasVideoProof, setHasVideoProof] = useState<boolean>(false);
   const [sellerPhone, setSellerPhone] = useState<string>(userProfile?.phone || '');
   const [sellerTower, setSellerTower] = useState<string>(userProfile?.tower || userTower || '');
-
+  const [listingMode, setListingMode] = useState<'sell' | 'wanted'>('sell');
 
   const [title, setTitle] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -46,6 +46,14 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
     { label: 'Kent RO', title: 'Kent Grand Plus RO+UV Water Purifier', key: 'water_purifier', img: '/images/water_purifier.jpg' },
     { label: 'Dell Monitor', title: 'Dell 27" UltraSharp 4K Monitor', key: 'display', img: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=800&q=80' },
     { label: 'Study Desk', title: 'Solid Sheesham Wood Study & Work Desk', key: 'desk', img: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=800&q=80' }
+  ];
+
+  const wantedPresets = [
+    { label: "Kid's Bicycle", title: "Kid's Bicycle (Age 5-8)" },
+    { label: 'Study Table', title: 'Study Table & Work Desk' },
+    { label: 'Office Chair', title: 'Ergonomic Mesh Chair' },
+    { label: 'Air Purifier', title: 'HEPA Room Air Purifier' },
+    { label: 'Yoga Mat', title: 'Extra Thick Exercise / Yoga Mat' }
   ];
 
   const runAIAnalysis = async (newTitle: string, presetKey?: string, defaultImg?: string) => {
@@ -111,9 +119,11 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !price) return;
+    if (!title.trim()) return;
+    const isWanted = listingMode === 'wanted';
+    if (!isWanted && !price) return;
 
-    const asking = parseInt(price, 10);
+    const asking = price ? parseInt(price, 10) : 0;
     const orig = originalPrice ? parseInt(originalPrice, 10) : asking * 2;
     const randomArt = `${Math.floor(100 + Math.random() * 900)}.${Math.floor(100 + Math.random() * 900)}.${Math.floor(10 + Math.random() * 90)}`;
     const category = detectedData ? detectedData.category : 'furniture';
@@ -136,22 +146,28 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
       ? `listing_${crypto.randomUUID()}`
       : `listing_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
+    const cleanTitle = isWanted
+      ? `Looking for: ${title.trim().replace(/^looking for:?\s*/i, '')}`
+      : title.trim();
+
     const newItem: ThriftItem = {
       id: uniqueId,
       articleNumber: randomArt,
-      ikeaStyleName: `${title.split(' ')[0].toUpperCase()} / ${category}`,
-      title: title.trim(),
+      ikeaStyleName: isWanted ? `WANTED / ${category.toUpperCase()}` : `${cleanTitle.split(' ')[0].toUpperCase()} / ${category}`,
+      title: cleanTitle,
       category,
       roomType,
       price: asking,
       originalPrice: orig,
       condition,
-      conditionLabel: condition === 'fixer_upper' ? 'Needs Repair' : (condition === 'like_new' ? 'Like New' : 'Gently Used'),
+      conditionLabel: isWanted ? 'Wanted by Neighbor' : (condition === 'fixer_upper' ? 'Needs Repair' : (condition === 'like_new' ? 'Like New' : 'Gently Used')),
       dimensions: dimensions.trim() || 'Standard size',
       assemblyStatus,
       liftFriendly,
-      inspectionNote: 'Available for inspection at pickup in residential tower.',
-      description: `Listed in ${currentSociety.name.split('(')[0].trim()}. Direct resident pickup from ${finalTower}.`,
+      inspectionNote: isWanted ? 'Looking to purchase or borrow from a neighbor in the society.' : 'Available for inspection at pickup in residential tower.',
+      description: isWanted
+        ? `Looking for this item in ${currentSociety.name.split('(')[0].trim()}. Direct elevator handover from ${finalTower}.`
+        : `Listed in ${currentSociety.name.split('(')[0].trim()}. Direct resident pickup from ${finalTower}.`,
       aspectRatio: '3/4',
       savesCount: 0,
       images: images.length > 0 ? images : ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80'],
@@ -174,8 +190,9 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
       isMovingOut,
       bottomLinePrice: Math.round(asking * 0.85),
       status: 'available',
-      tags: detectedData?.tags || ['#BhangarSpace', `#${category}`],
-      listedAgo: 'Just now'
+      tags: isWanted ? ['#WantedByNeighbor', '#LookingFor'] : (detectedData?.tags || ['#BhangarSpace', `#${category}`]),
+      listedAgo: 'Just now',
+      isWanted
     };
 
     onItemAdded(newItem);
@@ -194,16 +211,16 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'space-between',
-          marginBottom: '20px',
+          marginBottom: '14px',
           borderBottom: '1px solid var(--border-hairline)',
-          paddingBottom: '14px'
+          paddingBottom: '12px'
         }}>
           <div>
             <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 3px', letterSpacing: '-0.025em' }}>
-              Sell Something
+              {listingMode === 'wanted' ? 'Ask Your Neighbors' : 'Sell Something'}
             </h3>
             <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: 0 }}>
-              Free to list · Buyers come to you
+              {listingMode === 'wanted' ? 'Looking to buy or borrow? Neighbors might have it in their storeroom.' : 'Free to list · Buyers come to you'}
             </p>
           </div>
           <button
@@ -233,14 +250,63 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
           </button>
         </div>
 
+        {/* Mode Switcher Segmented Control */}
+        <div style={{
+          display: 'flex',
+          padding: '3px',
+          background: 'var(--bg-subtle)',
+          borderRadius: '10px',
+          marginBottom: '18px',
+          border: '1px solid var(--border-hairline)'
+        }}>
+          <button
+            type="button"
+            onClick={() => setListingMode('sell')}
+            style={{
+              flex: 1,
+              padding: '7px 12px',
+              borderRadius: '8px',
+              border: 'none',
+              background: listingMode === 'sell' ? '#FFFFFF' : 'transparent',
+              color: listingMode === 'sell' ? 'var(--text-primary)' : 'var(--text-muted)',
+              fontWeight: listingMode === 'sell' ? 700 : 500,
+              fontSize: '12.5px',
+              cursor: 'pointer',
+              boxShadow: listingMode === 'sell' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            📦 I'm Selling
+          </button>
+          <button
+            type="button"
+            onClick={() => setListingMode('wanted')}
+            style={{
+              flex: 1,
+              padding: '7px 12px',
+              borderRadius: '8px',
+              border: 'none',
+              background: listingMode === 'wanted' ? '#FFFFFF' : 'transparent',
+              color: listingMode === 'wanted' ? '#B45309' : 'var(--text-muted)',
+              fontWeight: listingMode === 'wanted' ? 700 : 500,
+              fontSize: '12.5px',
+              cursor: 'pointer',
+              boxShadow: listingMode === 'wanted' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            🔍 I'm Looking For
+          </button>
+        </div>
+
         {/* Photos */}
         <div style={{ marginBottom: '18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
             <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-              Photos
+              {listingMode === 'wanted' ? 'Photos (optional reference)' : 'Photos'}
             </label>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              First photo is the cover
+              {listingMode === 'wanted' ? 'Optional photo of what you need' : 'First photo is the cover'}
             </span>
           </div>
 
@@ -347,12 +413,12 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
         {/* Item name */}
         <div style={{ marginBottom: '16px' }}>
           <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>
-            What are you selling?
+            {listingMode === 'wanted' ? 'What are you looking for?' : 'What are you selling?'}
           </label>
           <input
             type="text"
             required
-            placeholder="e.g. IKEA office chair, Coway air purifier…"
+            placeholder={listingMode === 'wanted' ? 'e.g. Study desk, Aeropress, dumbbell set, bicycle…' : 'e.g. IKEA office chair, Coway air purifier…'}
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
             style={{
@@ -370,25 +436,48 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
 
           {/* Quick-fill chips */}
           <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginTop: '8px' }}>
-            {titlePresets.map((preset) => (
-              <button
-                key={preset.key}
-                type="button"
-                onClick={() => runAIAnalysis(preset.title, preset.key, preset.img)}
-                style={{
-                  padding: '3px 9px',
-                  borderRadius: 'var(--radius-full)',
-                  border: '1px solid var(--border-hairline)',
-                  background: title === preset.title ? 'var(--text-primary)' : 'var(--bg-canvas)',
-                  color: title === preset.title ? '#FFFFFF' : 'var(--text-secondary)',
-                  fontSize: '11px',
-                  cursor: 'pointer',
-                  transition: 'all 0.12s ease',
-                }}
-              >
-                {preset.label}
-              </button>
-            ))}
+            {listingMode === 'wanted'
+              ? wantedPresets.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => {
+                      setTitle(preset.title);
+                      if (!price) setPrice('1500');
+                    }}
+                    style={{
+                      padding: '3px 9px',
+                      borderRadius: 'var(--radius-full)',
+                      border: '1px solid var(--border-hairline)',
+                      background: title === preset.title ? '#B45309' : 'var(--bg-canvas)',
+                      color: title === preset.title ? '#FFFFFF' : 'var(--text-secondary)',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      transition: 'all 0.12s ease',
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                ))
+              : titlePresets.map((preset) => (
+                  <button
+                    key={preset.key}
+                    type="button"
+                    onClick={() => runAIAnalysis(preset.title, preset.key, preset.img)}
+                    style={{
+                      padding: '3px 9px',
+                      borderRadius: 'var(--radius-full)',
+                      border: '1px solid var(--border-hairline)',
+                      background: title === preset.title ? 'var(--text-primary)' : 'var(--bg-canvas)',
+                      color: title === preset.title ? '#FFFFFF' : 'var(--text-secondary)',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      transition: 'all 0.12s ease',
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
           </div>
         </div>
 
@@ -450,20 +539,22 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
               <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                Your asking price (₹)
+                {listingMode === 'wanted' ? 'Your max budget (₹, optional)' : 'Your asking price (₹)'}
               </label>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                {originalPrice && !isNaN(parseInt(originalPrice, 10))
-                  ? `Retail: ₹${parseInt(originalPrice, 10).toLocaleString('en-IN')}`
-                  : 'Estimated retail price'}
+                {listingMode === 'wanted'
+                  ? 'Leave blank if open to any price'
+                  : (originalPrice && !isNaN(parseInt(originalPrice, 10))
+                    ? `Retail: ₹${parseInt(originalPrice, 10).toLocaleString('en-IN')}`
+                    : 'Estimated retail price')}
               </span>
             </div>
 
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <input
                 type="number"
-                required
-                placeholder="e.g. 2500"
+                required={listingMode !== 'wanted'}
+                placeholder={listingMode === 'wanted' ? 'e.g. 1500 (or leave empty)' : 'e.g. 2500'}
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 style={{
@@ -515,7 +606,11 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
               lineHeight: 1.4
             }}>
               <span style={{ fontSize: '12px' }}>💡</span>
-              <span>Items priced at 30%–50% of retail usually sell within 48 hours to neighbors.</span>
+              <span>
+                {listingMode === 'wanted'
+                  ? 'Neighbors check their storeroom or spare items when someone asks directly in the society feed.'
+                  : 'Items priced at 30%–50% of retail usually sell within 48 hours to neighbors.'}
+              </span>
             </div>
           </div>
 
@@ -590,23 +685,24 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
           </div>
 
           {/* Moving out toggle */}
-          <label style={{
-
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '12.5px',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-          }}>
-            <input
-              type="checkbox"
-              checked={isMovingOut}
-              onChange={(e) => setIsMovingOut(e.target.checked)}
-              style={{ accentColor: '#1A1A1A' }}
-            />
-            <span>I'm moving out and need this gone quickly</span>
-          </label>
+          {listingMode === 'sell' && (
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '12.5px',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+            }}>
+              <input
+                type="checkbox"
+                checked={isMovingOut}
+                onChange={(e) => setIsMovingOut(e.target.checked)}
+                style={{ accentColor: '#1A1A1A' }}
+              />
+              <span>I'm moving out and need this gone quickly</span>
+            </label>
+          )}
 
           {/* Optional: more details toggle */}
           <button
@@ -694,7 +790,7 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
               marginTop: '2px',
               padding: '13px',
               borderRadius: 'var(--radius-full)',
-              background: 'var(--text-primary)',
+              background: listingMode === 'wanted' ? '#B45309' : 'var(--text-primary)',
               color: '#FFFFFF',
               fontSize: '14px',
               fontWeight: 700,
@@ -705,9 +801,10 @@ export const ListItemModal: React.FC<ListItemModalProps> = ({
               border: 'none',
               cursor: 'pointer',
               letterSpacing: '-0.02em',
+              transition: 'background 0.15s ease',
             }}
           >
-            Publish Listing
+            {listingMode === 'wanted' ? '📢 Post Request to Society' : 'Publish Listing'}
           </button>
         </form>
       </div>

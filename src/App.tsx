@@ -479,7 +479,9 @@ export function App() {
     }
 
     // Category match
-    if (selectedCategory === 'moving_out') {
+    if (selectedCategory === 'wanted') {
+      if (!item.isWanted) return false;
+    } else if (selectedCategory === 'moving_out') {
       if (!item.isMovingOut) return false;
     } else if (selectedCategory === 'fixer') {
       if (item.condition !== 'fixer_upper' && item.category !== 'fixer' && item.roomType !== 'fixer') return false;

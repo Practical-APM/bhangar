@@ -47,6 +47,7 @@ export interface ThriftItem {
   priceDroppedAt?: string;
   isExpired?: boolean;
   renewedAt?: string;
+  isWanted?: boolean;
 }
 
 export interface SellerOffer {

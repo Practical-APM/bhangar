@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Heart, ChevronRight, Sparkles } from 'lucide-react';
+import { Search, Heart, ChevronRight, Sparkles, Share2 } from 'lucide-react';
 import { SocietyInfo, ThriftItem } from '../data/mockData';
 
 interface HeroSectionProps {
@@ -51,6 +51,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 }) => {
   const categories = [
     { id: 'all', label: 'All Items' },
+    { id: 'wanted', label: '🔍 Wanted by Neighbors' },
     { id: 'wfh', label: 'Electronics & WFH' },
     { id: 'furniture', label: 'Furniture' },
     { id: 'appliances', label: 'Appliances' },
@@ -88,6 +89,35 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const secondaryItem = items.length > 1 ? items[1] : null;
 
   const societyNameClean = currentSociety ? currentSociety.name.split('(')[0].trim() : 'Your Society';
+
+  const handleShareDigest = () => {
+    const currentSocietyName = currentSociety ? currentSociety.name.split('(')[0].trim() : 'our society';
+    const societyItems = items.filter(it => !it.isExpired && it.status !== 'sold');
+    const forSale = societyItems.filter(it => !it.isWanted).slice(0, 4);
+    const wanted = societyItems.filter(it => it.isWanted).slice(0, 2);
+
+    let text = `🏡 *What's happening in ${currentSocietyName} on Bhangar.Space:*\n\n`;
+    if (forSale.length > 0) {
+      text += `📦 *Available for Elevator Pickup:*\n`;
+      forSale.forEach(it => {
+        text += `• ${it.title} - ₹${it.price.toLocaleString('en-IN')} (${it.seller?.tower || 'Tower'})\n`;
+      });
+      text += `\n`;
+    }
+    if (wanted.length > 0) {
+      text += `🔍 *Neighbors are Looking For:*\n`;
+      wanted.forEach(it => {
+        text += `• ${it.title} (${it.seller?.tower || 'Tower'})\n`;
+      });
+      text += `\n`;
+    }
+    text += `👉 Browse listings & post directly (free):\nhttps://bhangar.space`;
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
   return (
     <section style={{
@@ -233,6 +263,32 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               >
                 <span>Browse listings</span>
                 <ChevronRight size={13} />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleShareDigest}
+                title="Share this week's society listings directly to your society WhatsApp group"
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '10px',
+                  background: '#ECFDF5',
+                  color: '#065F46',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  border: '1px solid #A7F3D0',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#D1FAE5'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#ECFDF5'}
+              >
+                <Share2 size={13} color="#059669" />
+                <span>Share Digest</span>
               </button>
             </div>
           </div>

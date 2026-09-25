@@ -78,7 +78,8 @@ function mapRowToItem(row: any): ThriftItem {
       const ageDays = (Date.now() - new Date(createdTimestamp).getTime()) / (1000 * 60 * 60 * 24);
       return ageDays > 21;
     })(),
-    renewedAt: row.renewed_at || row.renewedAt || undefined
+    renewedAt: row.renewed_at || row.renewedAt || undefined,
+    isWanted: Boolean(row.is_wanted || row.isWanted)
   };
 }
 
@@ -266,7 +267,8 @@ export async function createItemInDB(item: ThriftItem): Promise<ThriftItem> {
         tags: dbItem.tags,
         society_id: dbItem.seller?.society ? dbItem.seller.society.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'general',
         is_seed: false,
-        seller_id: dbItem.sellerId || null
+        seller_id: dbItem.sellerId || null,
+        is_wanted: Boolean(dbItem.isWanted)
       });
 
       if (!error) {

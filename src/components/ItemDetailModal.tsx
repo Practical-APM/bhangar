@@ -240,8 +240,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
             {/* Title & Price Banner */}
             <div style={{
-              background: '#FAF8F5',
-              border: '1px solid #EBE5DC',
+              background: item.isWanted ? '#FEFDF8' : '#FAF8F5',
+              border: `1px solid ${item.isWanted ? '#FDE68A' : '#EBE5DC'}`,
               borderRadius: 'var(--radius-xs)',
               padding: '14px 16px',
               marginBottom: '16px'
@@ -250,27 +250,38 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 <h2 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, lineHeight: 1.3 }}>
                   {item.title}
                 </h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="tabular-nums" style={{ fontSize: '12px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
-                    ₹{item.originalPrice.toLocaleString('en-IN')}
-                  </span>
-                  <span className="tabular-nums" style={{ fontSize: '19px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    ₹{item.price.toLocaleString('en-IN')}
-                  </span>
-                  <span className="tabular-nums" style={{
-                    background: 'var(--ikea-yellow)',
-                    color: '#1A1A1A',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    padding: '2px 6px',
-                    borderRadius: '2px'
-                  }}>
-                    -{discountPercent}%
-                  </span>
-                </div>
+                {item.isWanted ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '12px', color: '#B45309', fontWeight: 600 }}>Max Budget:</span>
+                    <span className="tabular-nums" style={{ fontSize: '19px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {item.price > 0 ? `₹${item.price.toLocaleString('en-IN')}` : 'Flexible'}
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="tabular-nums" style={{ fontSize: '12px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                      ₹{item.originalPrice.toLocaleString('en-IN')}
+                    </span>
+                    <span className="tabular-nums" style={{ fontSize: '19px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      ₹{item.price.toLocaleString('en-IN')}
+                    </span>
+                    <span className="tabular-nums" style={{
+                      background: 'var(--ikea-yellow)',
+                      color: '#1A1A1A',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      padding: '2px 6px',
+                      borderRadius: '2px'
+                    }}>
+                      -{discountPercent}%
+                    </span>
+                  </div>
+                )}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                You save <strong className="tabular-nums" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>₹{savingsAmount.toLocaleString('en-IN')}</strong> compared to retail store price.
+                {item.isWanted
+                  ? '🔍 Neighbor request in your society. If you have this item at home or in storage, message the neighbor directly to arrange elevator handover!'
+                  : <>You save <strong className="tabular-nums" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>₹{savingsAmount.toLocaleString('en-IN')}</strong> compared to retail store price.</>}
               </div>
             </div>
 
@@ -663,6 +674,48 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                   </button>
                 </div>
               )}
+            </div>
+          ) : item.isWanted ? (
+            <div>
+              <button
+                onClick={() => {
+                  const cleanPhone = (item.seller?.phone || '').replace(/[^0-9]/g, '');
+                  if (cleanPhone) {
+                    const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+                    const text = `Hi ${item.seller?.alias || item.seller?.name || 'Neighbor'}! I saw your request on Bhangar.Space looking for "${item.title}". I live in ${userTower || 'the society'} and have one available. Let me know if you are interested!`;
+                    window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(text)}`, '_blank');
+                  } else {
+                    onClose();
+                    onOpenOfferModal(item);
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: 'var(--radius-xs)',
+                  background: '#059669',
+                  color: '#FFFFFF',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <span>🤝 I Have This! Chat on WhatsApp</span>
+                <ArrowRight size={14} />
+              </button>
+              <div style={{
+                textAlign: 'center',
+                fontSize: '11px',
+                color: 'var(--text-muted)',
+                marginTop: '6px'
+              }}>
+                💬 Connect directly with {item.seller.alias} on WhatsApp to coordinate
+              </div>
             </div>
           ) : (
             <div>

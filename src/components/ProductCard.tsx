@@ -49,14 +49,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       onMouseLeave={() => setIsHovered(false)}
       className="pin-card masonry-item"
       style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid rgba(0, 0, 0, 0.06)',
+        background: item.isWanted ? '#FEFDF8' : 'var(--bg-surface)',
+        border: item.isWanted ? '1.5px solid #FDE68A' : '1px solid rgba(0, 0, 0, 0.06)',
         borderRadius: '18px',
         padding: '11px',
         display: 'flex',
         flexDirection: 'column',
         cursor: 'pointer',
-        boxShadow: 'var(--shadow-card)',
+        boxShadow: item.isWanted ? '0 4px 14px rgba(217, 119, 6, 0.08)' : 'var(--shadow-card)',
         position: 'relative',
       }}
     >
@@ -97,25 +97,39 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           position: 'absolute', top: '8px', left: '8px',
           display: 'flex', flexDirection: 'column', gap: '4px', pointerEvents: 'none',
         }}>
-          <span style={{
-            background: 'rgba(24, 22, 20, 0.78)',
-            color: '#FFFFFF', fontSize: '9px', fontWeight: 600,
-            padding: '3px 7px', borderRadius: '6px',
-            letterSpacing: '0.04em', textTransform: 'uppercase',
-            backdropFilter: 'blur(4px)',
-          }}>
-            {item.condition === 'like_new' ? 'Like New' : item.condition === 'gently_used' ? 'Gently Used' : 'Needs Repair'}
-          </span>
-          {item.isMovingOut && (
+          {item.isWanted ? (
             <span style={{
-              background: 'rgba(255, 255, 255, 0.92)',
-              color: 'var(--text-primary)', fontSize: '9px', fontWeight: 600,
-              padding: '3px 7px', borderRadius: '6px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+              background: '#D97706',
+              color: '#FFFFFF', fontSize: '9px', fontWeight: 700,
+              padding: '3px 8px', borderRadius: '6px',
+              letterSpacing: '0.04em', textTransform: 'uppercase',
               backdropFilter: 'blur(4px)',
             }}>
-              Moving Out
+              🔍 WANTED BY NEIGHBOR
             </span>
+          ) : (
+            <>
+              <span style={{
+                background: 'rgba(24, 22, 20, 0.78)',
+                color: '#FFFFFF', fontSize: '9px', fontWeight: 600,
+                padding: '3px 7px', borderRadius: '6px',
+                letterSpacing: '0.04em', textTransform: 'uppercase',
+                backdropFilter: 'blur(4px)',
+              }}>
+                {item.condition === 'like_new' ? 'Like New' : item.condition === 'gently_used' ? 'Gently Used' : 'Needs Repair'}
+              </span>
+              {item.isMovingOut && (
+                <span style={{
+                  background: 'rgba(255, 255, 255, 0.92)',
+                  color: 'var(--text-primary)', fontSize: '9px', fontWeight: 600,
+                  padding: '3px 7px', borderRadius: '6px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                  backdropFilter: 'blur(4px)',
+                }}>
+                  Moving Out
+                </span>
+              )}
+            </>
           )}
         </div>
 
@@ -302,21 +316,44 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           justifyContent: 'space-between',
           marginBottom: '10px',
         }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px' }}>
-            <span className="tabular-nums" style={{
-              fontSize: '17px', fontWeight: 700,
-              color: 'var(--text-primary)', letterSpacing: '-0.02em',
-            }}>
-              ₹{item.price.toLocaleString('en-IN')}
-            </span>
-            <span className="tabular-nums" style={{
-              fontSize: '11.5px', color: 'var(--text-muted)', textDecoration: 'line-through',
-            }}>
-              ₹{item.originalPrice.toLocaleString('en-IN')}
-            </span>
-          </div>
+          {item.isWanted ? (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+              <span style={{ fontSize: '11px', color: '#B45309', fontWeight: 600, textTransform: 'uppercase' }}>Budget:</span>
+              <span className="tabular-nums" style={{
+                fontSize: '16px', fontWeight: 700,
+                color: 'var(--text-primary)', letterSpacing: '-0.02em',
+              }}>
+                {item.price > 0 ? `₹${item.price.toLocaleString('en-IN')}` : 'Flexible'}
+              </span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px' }}>
+              <span className="tabular-nums" style={{
+                fontSize: '17px', fontWeight: 700,
+                color: 'var(--text-primary)', letterSpacing: '-0.02em',
+              }}>
+                ₹{item.price.toLocaleString('en-IN')}
+              </span>
+              <span className="tabular-nums" style={{
+                fontSize: '11.5px', color: 'var(--text-muted)', textDecoration: 'line-through',
+              }}>
+                ₹{item.originalPrice.toLocaleString('en-IN')}
+              </span>
+            </div>
+          )}
 
-          {item.previousPrice && item.previousPrice > item.price ? (
+          {item.isWanted ? (
+            <span style={{
+              background: '#FEF3C7',
+              color: '#92400E',
+              fontSize: '10px', fontWeight: 700,
+              padding: '2.5px 8px',
+              borderRadius: 'var(--radius-full)',
+              letterSpacing: '-0.01em',
+            }}>
+              Looking to Buy
+            </span>
+          ) : item.previousPrice && item.previousPrice > item.price ? (
             <span style={{
               background: '#DC2626',
               color: '#FFFFFF',
@@ -367,13 +404,48 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             }}
           >
             <span>
-              {item.status === 'sold'
+              {item.isWanted
+                ? 'Your Request · Manage'
+                : item.status === 'sold'
                 ? 'Your Listing · Sold'
                 : item.status === 'held'
                 ? 'Your Listing · Reserved'
                 : 'Your Listing · Manage'}
             </span>
             <ArrowRight size={13} />
+          </button>
+        ) : item.isWanted ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const cleanPhone = (item.seller?.phone || '').replace(/[^0-9]/g, '');
+              if (cleanPhone) {
+                const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+                const text = `Hi ${item.seller?.alias || item.seller?.name || 'Neighbor'}! I saw your request on Bhangar.Space looking for "${item.title}". I live in ${userTower || 'the society'} and have one available. Let me know if you are interested!`;
+                window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(text)}`, '_blank');
+              } else {
+                onViewDetails(item);
+              }
+            }}
+            className="card-cta-btn"
+            style={{
+              width: '100%',
+              padding: '9px 14px',
+              borderRadius: 'var(--radius-full)',
+              background: '#059669',
+              color: '#FFFFFF',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            <span>🤝 I Have This! Chat on WhatsApp</span>
           </button>
         ) : (
           <button
@@ -398,7 +470,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             }}
           >
             <span>{item.status === 'sold' ? 'Sold Out' : item.status === 'held' ? 'Reserved' : 'Make Offer'}</span>
-            {!isDisabled && <ArrowRight size={13} />}
+            {!isDisabled && <ArrowRight size={14} />}
           </button>
         )}
       </div>
